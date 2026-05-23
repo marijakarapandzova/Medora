@@ -44,4 +44,12 @@ public interface PerformedProcedureRepository extends JpaRepository<PerformedPro
         WHERE mrp.medicalRecord.recordId = :recordId
     """)
     List<PerformedProcedures> findByMedicalRecordId(@Param("recordId") Long recordId);
+
+    // UC020 – Auto billing: Get procedures for a patient on a specific date
+    @Query("""
+        SELECT pp FROM PerformedProcedures pp
+        WHERE pp.patient.patientId = :patientId
+        AND pp.procedureDate = :procedureDate
+    """)
+    List<PerformedProcedures> findByPatientAndDate(@Param("patientId") Long patientId, @Param("procedureDate") java.time.LocalDate procedureDate);
 }

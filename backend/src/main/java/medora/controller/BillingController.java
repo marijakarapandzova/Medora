@@ -1,13 +1,18 @@
 package medora.controller;
 
 import medora.dto.BillingDTO;
+import medora.dto.BillingDetailDTO;
 import medora.dto.CreateBillingRequest;
 import medora.dto.UpdateBillingRequest;
 import medora.models.domain.Billing;
+import medora.models.enums.PaymentStatus;
 import medora.service.BillingService;
+import medora.util.BillingPDFGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -81,6 +86,23 @@ public class BillingController {
         }
     }
 
+    @GetMapping("/{billId}/detail")
+    public ResponseEntity<?> getBillingDetail(@PathVariable Long billId) {
+        try {
+            logger.info("Fetching detailed billing information for bill ID: {}", billId);
+            BillingDetailDTO detail = billingService.getBillingDetail(billId);
+            return ResponseEntity.ok(detail);
+        } catch (RuntimeException e) {
+            logger.error("Error fetching billing detail: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error fetching billing detail: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch billing detail: " + e.getMessage()));
+        }
+    }
+
     @GetMapping
     public ResponseEntity<?> getAllBillings() {
         try {
@@ -123,7 +145,7 @@ public class BillingController {
 
     @PatchMapping("/{billId}/payment-status")
     public ResponseEntity<?> updatePaymentStatus(@PathVariable Long billId,
-                                                @RequestBody UpdateBillingRequest request) {
+                                                 @RequestBody UpdateBillingRequest request) {
         try {
             if (request.getPaymentStatus() == null) {
                 return ResponseEntity.badRequest()
@@ -146,11 +168,35 @@ public class BillingController {
         }
     }
 
+    @GetMapping("/{billId}/invoice-pdf")
+    public ResponseEntity<?> downloadInvoicePDF(@PathVariable Long billId) {
+        try {
+            logger.info("Generating PDF invoice for bill ID: {}", billId);
+            BillingDetailDTO billingDetail = billingService.getBillingDetail(billId);
+            byte[] pdfContent = BillingPDFGenerator.generateInvoicePDF(billingDetail);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "invoice-" + billId + ".pdf");
+            headers.setContentLength(pdfContent.length);
+
+            return new ResponseEntity<>(pdfContent, headers, HttpStatus.OK);
+        } catch (RuntimeException e) {
+            logger.error("Error generating PDF invoice: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error generating PDF invoice: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to generate invoice: " + e.getMessage()));
+        }
+    }
+
     private BillingDTO convertToDTO(Billing billing) {
         String patientName = "";
         if (billing.getMedicalRecord() != null && billing.getMedicalRecord().getPatient() != null) {
             patientName = billing.getMedicalRecord().getPatient().getFirstName() + " " +
-                         billing.getMedicalRecord().getPatient().getLastName();
+                    billing.getMedicalRecord().getPatient().getLastName();
         }
         return new BillingDTO(
                 billing.getBillId(),

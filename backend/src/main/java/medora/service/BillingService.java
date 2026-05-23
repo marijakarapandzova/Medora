@@ -1,8 +1,23 @@
 package medora.service;
 
-import medora.models.domain.*;
+import medora.models.domain.Billing;
+import medora.models.domain.MedicalRecord;
+import medora.models.domain.Admin;
+import medora.models.domain.BillingLabTests;
+import medora.models.domain.BillingProcedures;
+import medora.models.domain.PerformedProcedures;
+import medora.models.domain.PerformedLabTests;
 import medora.models.enums.PaymentStatus;
-import medora.repository.*;
+import medora.repository.BillingRepository;
+import medora.repository.MedicalRecordRepository;
+import medora.repository.AdminRepository;
+import medora.repository.BillingLabTestsRepository;
+import medora.repository.BillingProceduresRepository;
+import medora.repository.PerformedProcedureRepository;
+import medora.repository.PerformedLabTestRepository;
+import medora.repository.PatientRepository;
+import medora.dto.BillingDetailDTO;
+import medora.dto.BillingItemDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -12,6 +27,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
 
 /**
  * BillingService handles billing operations.
@@ -29,17 +45,26 @@ public class BillingService {
     private final AdminRepository adminRepository;
     private final BillingLabTestsRepository billingLabTestsRepository;
     private final BillingProceduresRepository billingProceduresRepository;
+    private final PerformedProcedureRepository performedProcedureRepository;
+    private final PerformedLabTestRepository performedLabTestRepository;
+    private final PatientRepository patientRepository;
 
     public BillingService(BillingRepository billingRepository,
                           MedicalRecordRepository medicalRecordRepository,
                           AdminRepository adminRepository,
                           BillingLabTestsRepository billingLabTestsRepository,
-                          BillingProceduresRepository billingProceduresRepository) {
+                          BillingProceduresRepository billingProceduresRepository,
+                          PerformedProcedureRepository performedProcedureRepository,
+                          PerformedLabTestRepository performedLabTestRepository,
+                          PatientRepository patientRepository) {
         this.billingRepository = billingRepository;
         this.medicalRecordRepository = medicalRecordRepository;
         this.adminRepository = adminRepository;
         this.billingLabTestsRepository = billingLabTestsRepository;
         this.billingProceduresRepository = billingProceduresRepository;
+        this.performedProcedureRepository = performedProcedureRepository;
+        this.performedLabTestRepository = performedLabTestRepository;
+        this.patientRepository = patientRepository;
     }
 
     /**
@@ -195,7 +220,7 @@ public class BillingService {
             labTestCost = BigDecimal.ZERO;
         }
 
-        logger.info("Total billing cost for bill ID {}: procedures={}, lab tests={}", 
+        logger.info("Total billing cost for bill ID {}: procedures={}, lab tests={}",
                 billId, procedureCost, labTestCost);
         return procedureCost.add(labTestCost);
     }
@@ -218,7 +243,7 @@ public class BillingService {
         // Note: You'll need to inject ProcedureRepository to get the procedure
         // This is a placeholder - adjust based on your actual Procedure entity
         logger.info("Adding procedure {} to billing record {}", procedureId, billId);
-        
+
         return null; // Will be implemented with ProcedureRepository injection
     }
 
@@ -240,7 +265,181 @@ public class BillingService {
         // Note: You'll need to inject LabTestRepository to get the test
         // This is a placeholder - adjust based on your actual LabTests entity
         logger.info("Adding lab test {} to billing record {}", testId, billId);
-        
+
         return null; // Will be implemented with LabTestRepository injection
+    }
+
+    /**
+     * UC020 – Auto-generate billing when a procedure or lab test is performed
+     * Creates a billing record if one doesn't exist for the patient on that date
+     * Calculates total cost from all procedures and lab tests performed that day
+     */
+    @Transactional
+    public void autoGenerateBillingForPatientService(Long patientId, LocalDate serviceDate) {
+        try {
+            if (patientId == null || patientId <= 0) {
+                throw new IllegalArgumentException("Patient ID must be valid");
+            }
+            if (serviceDate == null) {
+                throw new IllegalArgumentException("Service date must be valid");
+            }
+
+            logger.info("Starting auto-billing for patient {} on date {}", patientId, serviceDate);
+
+            // Get patient's medical record (or create one if it doesn't exist)
+            MedicalRecord medicalRecord = medicalRecordRepository.findByPatientPatientId(patientId)
+                    .orElseGet(() -> {
+                        logger.info("Creating new medical record for patient {}", patientId);
+                        MedicalRecord newRecord = new MedicalRecord();
+                        newRecord.setPatient(patientRepository.findById(patientId)
+                                .orElseThrow(() -> new RuntimeException("Patient not found with ID: " + patientId)));
+                        return medicalRecordRepository.save(newRecord);
+                    });
+
+            logger.info("Using medical record {} for patient {}", medicalRecord.getRecordId(), patientId);
+
+            // Get all procedures and lab tests for the patient on that date
+            List<PerformedProcedures> procedures = performedProcedureRepository.findByPatientAndDate(patientId, serviceDate);
+            List<PerformedLabTests> labTests = performedLabTestRepository.findByPatientAndDate(patientId, serviceDate);
+
+            logger.info("Found {} procedures and {} lab tests for patient {} on {}",
+                    procedures.size(), labTests.size(), patientId, serviceDate);
+
+            // Only generate billing if there are procedures or lab tests on that date
+            if (procedures.isEmpty() && labTests.isEmpty()) {
+                logger.info("No procedures or lab tests found for patient {} on {}", patientId, serviceDate);
+                return;
+            }
+
+            // Calculate total cost
+            BigDecimal procedureCost = procedures.stream()
+                    .map(p -> {
+                        BigDecimal cost = p.getProcedure().getCost();
+                        logger.debug("Procedure {} cost: {}", p.getProcedure().getProcedureId(), cost);
+                        return cost;
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal labTestCost = labTests.stream()
+                    .map(lt -> {
+                        BigDecimal cost = lt.getLabTest().getCost();
+                        logger.debug("Lab test {} cost: {}", lt.getLabTest().getTestId(), cost);
+                        return cost;
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal totalCost = procedureCost.add(labTestCost);
+            logger.info("Total cost calculation: procedures={}, labTests={}, total={}", procedureCost, labTestCost, totalCost);
+
+            // Check if billing already exists for this patient on this date
+            Billing billing = billingRepository.findBillingForPatientOnDate(patientId, serviceDate);
+
+            if (billing != null) {
+                logger.info("Billing record {} already exists for patient {} on {}, updating with new total",
+                        billing.getBillId(), patientId, serviceDate);
+                billing.setTotalCost(totalCost);
+            } else {
+                // Get default admin (first admin in system)
+                Admin admin = adminRepository.findAll()
+                        .stream()
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("No admin found in system"));
+
+                // Create new billing record
+                billing = new Billing();
+                billing.setMedicalRecord(medicalRecord);
+                billing.setAdmin(admin);
+                billing.setTotalCost(totalCost);
+                billing.setPaymentStatus(PaymentStatus.PENDING);
+                billing.setPaymentDate(serviceDate);
+
+                logger.info("Creating new billing record for patient {} on {}", patientId, serviceDate);
+            }
+
+            Billing savedBilling = billingRepository.save(billing);
+            logger.info("Billing record {} for patient {} on {} with total cost: {}",
+                    savedBilling.getBillId(), patientId, serviceDate, totalCost);
+
+            // Link procedures to billing (only if not already linked)
+            for (PerformedProcedures procedure : procedures) {
+                try {
+                    BillingProcedures billingProcedure = new BillingProcedures(savedBilling, procedure.getProcedure());
+                    billingProceduresRepository.save(billingProcedure);
+                    logger.debug("Linked procedure {} to billing {}", procedure.getProcedure().getProcedureId(), savedBilling.getBillId());
+                } catch (Exception e) {
+                    logger.debug("Procedure {} already linked to billing {}", procedure.getProcedure().getProcedureId(), savedBilling.getBillId());
+                }
+            }
+
+            // Link lab tests to billing (only if not already linked)
+            for (PerformedLabTests labTest : labTests) {
+                try {
+                    BillingLabTests billingLabTest = new BillingLabTests(savedBilling, labTest.getLabTest());
+                    billingLabTestsRepository.save(billingLabTest);
+                    logger.debug("Linked lab test {} to billing {}", labTest.getLabTest().getTestId(), savedBilling.getBillId());
+                } catch (Exception e) {
+                    logger.debug("Lab test {} already linked to billing {}", labTest.getLabTest().getTestId(), savedBilling.getBillId());
+                }
+            }
+
+            logger.info("Successfully processed {} procedures and {} lab tests for billing record {}",
+                    procedures.size(), labTests.size(), savedBilling.getBillId());
+
+        } catch (Exception e) {
+            logger.error("Error in auto-billing for patient {} on date {}: {}", patientId, serviceDate, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Get detailed billing information with itemized procedures and lab tests
+     */
+    @Transactional(readOnly = true)
+    public BillingDetailDTO getBillingDetail(Long billId) {
+        if (billId == null || billId <= 0) {
+            throw new IllegalArgumentException("Bill ID must be valid");
+        }
+
+        Billing billing = billingRepository.findById(billId)
+                .orElseThrow(() -> new RuntimeException("Billing record not found with ID: " + billId));
+
+        // Get procedures for this bill
+        List<Object[]> procedureResults = billingRepository.findProceduresForBilling(billId);
+        List<BillingItemDTO> procedures = new ArrayList<>();
+        for (Object[] row : procedureResults) {
+            procedures.add(new BillingItemDTO(
+                    ((Number) row[0]).longValue(),
+                    (String) row[1],
+                    (BigDecimal) row[2]
+            ));
+        }
+
+        // Get lab tests for this bill
+        List<Object[]> labTestResults = billingRepository.findLabTestsForBilling(billId);
+        List<BillingItemDTO> labTests = new ArrayList<>();
+        for (Object[] row : labTestResults) {
+            labTests.add(new BillingItemDTO(
+                    ((Number) row[0]).longValue(),
+                    (String) row[1],
+                    (BigDecimal) row[2]
+            ));
+        }
+
+        // Build the detail DTO
+        BillingDetailDTO detail = new BillingDetailDTO();
+        detail.setBillId(billing.getBillId());
+        detail.setPatientName(billing.getMedicalRecord().getPatient().getFirstName() + " " +
+                billing.getMedicalRecord().getPatient().getLastName());
+        detail.setPatientEmbg(billing.getMedicalRecord().getPatient().getEmbg());
+        detail.setPatientPhone(billing.getMedicalRecord().getPatient().getPhoneNumber());
+        detail.setTotalCost(billing.getTotalCost());
+        detail.setPaymentStatus(billing.getPaymentStatus().toString());
+        detail.setPaymentDate(billing.getPaymentDate());
+        detail.setBillDate(billing.getPaymentDate());
+        detail.setProcedures(procedures);
+        detail.setLabTests(labTests);
+
+        logger.info("Retrieved detailed billing information for bill {}", billId);
+        return detail;
     }
 }

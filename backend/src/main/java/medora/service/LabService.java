@@ -30,6 +30,7 @@ public class LabService {
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
     private final LabTechnicianRepository labTechnicianRepository;
+    private final BillingService billingService;
 
     public LabService(LabTestRepository labTestRepository,
                       LabResultsRepository labResultsRepository,
@@ -38,7 +39,8 @@ public class LabService {
                       PerformedLabTestRepository performedLabTestRepository,
                       PatientRepository patientRepository,
                       DoctorRepository doctorRepository,
-                      LabTechnicianRepository labTechnicianRepository) {
+                      LabTechnicianRepository labTechnicianRepository,
+                      BillingService billingService) {
         this.labTestRepository = labTestRepository;
         this.labResultsRepository = labResultsRepository;
         this.medicalRecordRepository = medicalRecordRepository;
@@ -47,9 +49,10 @@ public class LabService {
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
         this.labTechnicianRepository = labTechnicianRepository;
+        this.billingService = billingService;
     }
 
-    // LAB TEST
+    // ================= LAB TEST =================
 
     @Transactional
     public LabTests requestLabTest(String testName, String description,
@@ -103,7 +106,7 @@ public class LabService {
         return labTestRepository.save(test);
     }
 
-    //  LAB TEST REQUESTS (UC013)
+    // ================= LAB TEST REQUESTS (UC013) =================
 
     @Transactional
     public PerformedLabTests requestLabTestForPatient(Long patientId,
@@ -133,11 +136,17 @@ public class LabService {
         performedTest.setPatient(patient);
         performedTest.setDoctor(doctor);
         performedTest.setLabTest(test);
-        performedTest.setTestDate(testDate != null ? testDate : LocalDate.now());
+        LocalDate finalTestDate = testDate != null ? testDate : LocalDate.now();
+        performedTest.setTestDate(finalTestDate);
         performedTest.setNotes(notes);
 
         logger.info("Lab test {} requested for patient {} by doctor {}", testId, patientId, doctorId);
-        return performedLabTestRepository.save(performedTest);
+        PerformedLabTests saved = performedLabTestRepository.save(performedTest);
+
+        // Auto-generate billing for the patient on this date
+        billingService.autoGenerateBillingForPatientService(patientId, finalTestDate);
+
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -162,7 +171,7 @@ public class LabService {
         return performedLabTestRepository.findByDoctorDoctorId(doctorId);
     }
 
-    //  LAB RESULTS (UC014, UC015)
+    // ================= LAB RESULTS (UC014, UC015) =================
 
     @Transactional
     public MedicalRecordLabResults storeLabResult(Long medicalRecordId,
@@ -192,7 +201,8 @@ public class LabService {
 
         LabResults saved = labResultsRepository.save(labResult);
 
-
+        // Use the join repository to safely link (avoid deleting existing links)
+        // Create and save the join entity explicitly
         MedicalRecordLabResults link = new MedicalRecordLabResults();
         link.setMedicalRecord(medicalRecord);
         link.setLabResult(saved);

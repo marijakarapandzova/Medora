@@ -1,14 +1,16 @@
 package medora.service;
 
 import medora.models.domain.Appointment;
-import medora.models.domain.Doctors;
 import medora.models.domain.Patient;
+import medora.models.domain.Doctors;
 import medora.models.enums.AppointmentStatus;
 import medora.repository.AppointmentRepository;
-import medora.repository.DoctorRepository;
 import medora.repository.PatientRepository;
+import medora.repository.DoctorRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -78,13 +80,14 @@ public class AppointmentService {
         LocalDateTime appointmentDateTime =
                 LocalDateTime.of(appointmentDate, appointmentTime);
 
-
+        // Future validation
         if (!appointmentDateTime.isAfter(LocalDateTime.now())) {
             throw new RuntimeException(
                     "Appointment must be scheduled for a future date and time"
             );
         }
 
+        // Doctor slot validation
         boolean doctorBusy =
                 appointmentRepository
                         .existsByDoctorDoctorIdAndAppointmentDateAndAppointmentTimeAndStatusNot(
@@ -98,6 +101,7 @@ public class AppointmentService {
             throw new RuntimeException("This appointment slot is already booked");
         }
 
+        // Duplicate patient validation
         boolean duplicateAppointment =
                 appointmentRepository
                         .existsByPatientPatientIdAndDoctorDoctorIdAndAppointmentDateAndAppointmentTimeAndStatusNot(
@@ -203,7 +207,6 @@ public class AppointmentService {
         return appointmentRepository.save(appointment);
     }
 
-
     @Transactional(readOnly = true)
     public Optional<Appointment> getAppointmentById(Long appointmentId) {
 
@@ -216,9 +219,7 @@ public class AppointmentService {
         return appointmentRepository.findById(appointmentId);
     }
 
-    /**
-     * Get appointments for patient
-     */
+
     @Transactional(readOnly = true)
     public List<Appointment> getAppointmentsForPatient(Long patientId) {
 
@@ -295,5 +296,32 @@ public class AppointmentService {
         logger.info("Fetching all appointments");
 
         return appointmentRepository.findAll();
+    }
+
+
+    public LocalTime findNextAvailableSlot(Long doctorId, LocalDate appointmentDate) {
+        LocalTime[] timeSlots = {
+                LocalTime.of(9, 0),
+                LocalTime.of(10, 0),
+                LocalTime.of(11, 0),
+                LocalTime.of(13, 0),
+                LocalTime.of(14, 0),
+                LocalTime.of(15, 0),
+                LocalTime.of(16, 0)
+        };
+
+        for (LocalTime timeSlot : timeSlots) {
+            boolean isBooked = appointmentRepository
+                    .existsByDoctorDoctorIdAndAppointmentDateAndAppointmentTimeAndStatusNot(
+                            doctorId,
+                            appointmentDate,
+                            timeSlot,
+                            AppointmentStatus.CANCELLED
+                    );
+            if (!isBooked) {
+                return timeSlot;
+            }
+        }
+        return null;
     }
 }

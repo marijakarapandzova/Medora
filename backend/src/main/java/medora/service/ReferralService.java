@@ -1,24 +1,25 @@
 package medora.service;
 
-import medora.models.domain.Doctors;
 import medora.models.domain.Referrals;
-import medora.repository.DoctorRepository;
-import medora.repository.MedicalRecordRepository;
-import medora.repository.PatientRepository;
+import medora.models.domain.Doctors;
 import medora.repository.ReferralRepository;
+import medora.repository.DoctorRepository;
+import medora.repository.PatientRepository;
+import medora.repository.MedicalRecordRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * RefferalService handles referral operations.
  * UC019 – Create Referral Record
- * OPTIONAL - Use only if needed
+
  */
 @Service
 public class ReferralService {
@@ -29,24 +30,27 @@ public class ReferralService {
     private final DoctorRepository doctorRepository;
     private final PatientRepository patientRepository;
     private final MedicalRecordRepository medicalRecordRepository;
+    private final AppointmentService appointmentService;
 
     public ReferralService(ReferralRepository referralRepository,
                            DoctorRepository doctorRepository,
                            PatientRepository patientRepository,
-                           MedicalRecordRepository medicalRecordRepository) {
+                           MedicalRecordRepository medicalRecordRepository,
+                           AppointmentService appointmentService) {
         this.referralRepository = referralRepository;
         this.doctorRepository = doctorRepository;
         this.patientRepository = patientRepository;
         this.medicalRecordRepository = medicalRecordRepository;
+        this.appointmentService = appointmentService;
     }
 
     /**
      * UC019 – Create Referral Record
-     * Create a referral from one doctor to another
+     * Create a referral from one doctor to another and automatically create an appointment
      */
     @Transactional
     public Referrals createReferral(Long medicalRecordId, Long fromDoctorId, Long toDoctorId,
-                                    String reason, LocalDate referralDate) {
+                                    String reason, LocalDate referralDate, LocalDate appointmentDate, LocalTime appointmentTime) {
         if (medicalRecordId == null || medicalRecordId <= 0) {
             throw new IllegalArgumentException("Medical record ID must be valid");
         }
@@ -61,6 +65,12 @@ public class ReferralService {
         }
         if (referralDate == null) {
             throw new IllegalArgumentException("Referral date is required");
+        }
+        if (appointmentDate == null) {
+            throw new IllegalArgumentException("Appointment date is required");
+        }
+        if (appointmentTime == null) {
+            throw new IllegalArgumentException("Appointment time is required");
         }
 
         var medicalRecord = medicalRecordRepository.findById(medicalRecordId)
@@ -82,10 +92,14 @@ public class ReferralService {
         referral.setToDoctor(toDoctor);
         referral.setReason(reason);
         referral.setReferralDate(referralDate);
+        referral.setAppointmentDate(appointmentDate);
+        referral.setAppointmentTime(appointmentTime);
 
         logger.info("Creating referral for medical record ID: {} from doctor ID: {} to doctor ID: {}",
                 medicalRecordId, fromDoctorId, toDoctorId);
-        return referralRepository.save(referral);
+        Referrals savedReferral = referralRepository.save(referral);
+
+        return savedReferral;
     }
 
 
@@ -141,5 +155,17 @@ public class ReferralService {
 
         logger.info("Fetching referrals to doctor ID: {}", doctorId);
         return referralRepository.findIncomingReferralsForDoctor(doctorId);
+    }
+
+
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    private void createAppointmentForReferral(Long patientId, Long doctorId, LocalDate appointmentDate, LocalTime appointmentTime) {
+        try {
+            appointmentService.createAppointment(patientId, doctorId, appointmentDate, appointmentTime);
+            logger.info("Automatically created appointment for patient ID: {} with doctor ID: {} on {} at {}",
+                    patientId, doctorId, appointmentDate, appointmentTime);
+        } catch (RuntimeException e) {
+            logger.warn("Failed to create appointment for referral. Error: {}", e.getMessage());
+        }
     }
 }

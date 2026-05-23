@@ -78,4 +78,51 @@ public interface BillingRepository extends JpaRepository<Billing, Long> {
         ORDER BY b.paymentDate DESC
     """)
     List<Billing> findBillingHistoryForPatient(@Param("patientId") Long patientId);
+
+    // UC020 – Auto billing: Check if billing exists for patient on a specific date
+    @Query(value = """
+        SELECT COUNT(b.bill_id) > 0
+        FROM billing b
+        JOIN medical_records mr ON b.record_id = mr.record_id
+        WHERE mr.patient_id = :patientId
+        AND CAST(b.payment_date AS DATE) = :billDate
+    """, nativeQuery = true)
+    boolean existsBillingForPatientOnDate(@Param("patientId") Long patientId, @Param("billDate") java.time.LocalDate billDate);
+
+    // UC020 – Auto billing: Get billing for patient on a specific date
+    @Query(value = """
+        SELECT b.* FROM billing b
+        JOIN medical_records mr ON b.record_id = mr.record_id
+        WHERE mr.patient_id = :patientId
+        AND CAST(b.payment_date AS DATE) = :billDate
+        LIMIT 1
+    """, nativeQuery = true)
+    Billing findBillingForPatientOnDate(@Param("patientId") Long patientId, @Param("billDate") java.time.LocalDate billDate);
+
+    // UC020 – Auto billing: Calculate total cost for patient on a specific date (using view)
+    @Query(value = """
+        SELECT COALESCE(total_cost, 0::decimal)
+        FROM daily_patient_billing_totals
+        WHERE patient_id = :patientId
+        AND service_date = :serviceDate
+    """, nativeQuery = true)
+    BigDecimal calculateDailyTotalCostForPatient(@Param("patientId") Long patientId, @Param("serviceDate") java.time.LocalDate serviceDate);
+
+    // UC020 – Get procedures for a billing record
+    @Query(value = """
+        SELECT p.procedure_id, p.procedure_type, p.cost
+        FROM billing_procedures bp
+        JOIN procedures p ON bp.procedure_id = p.procedure_id
+        WHERE bp.bill_id = :billId
+    """, nativeQuery = true)
+    java.util.List<Object[]> findProceduresForBilling(@Param("billId") Long billId);
+
+    // UC020 – Get lab tests for a billing record
+    @Query(value = """
+        SELECT l.test_id, l.test_name, l.cost
+        FROM billing_lab_tests blt
+        JOIN lab_tests l ON blt.test_id = l.test_id
+        WHERE blt.bill_id = :billId
+    """, nativeQuery = true)
+    java.util.List<Object[]> findLabTestsForBilling(@Param("billId") Long billId);
 }

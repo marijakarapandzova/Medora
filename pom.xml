@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>medora</groupId>
-    <artifactId>medora5</artifactId>
+    <artifactId>medora4</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>medora5</name>
-    <description>medora5</description>
+    <name>medora4</name>
+    <description>medora4</description>
     <url/>
     <licenses>
         <license/>
@@ -73,6 +73,23 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- iText for PDF generation -->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>kernel</artifactId>
+            <version>7.2.5</version>
+        </dependency>
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>layout</artifactId>
+            <version>7.2.5</version>
+        </dependency>
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>io</artifactId>
+            <version>7.2.5</version>
         </dependency>
     </dependencies>
 

@@ -28,6 +28,7 @@ public class ProcedureService {
     private final ProcedureResultRepository procedureResultRepository;
     private final MedicalRecordProcedureResultRepository medicalRecordProcedureResultRepository;
     private final EntityManager entityManager;
+    private final BillingService billingService;
 
     public ProcedureService(PerformedProcedureRepository performedProcedureRepository,
                             ProcedureRepository procedureRepository,
@@ -38,7 +39,8 @@ public class ProcedureService {
                             MedicalRecordProcedureRepository medicalRecordProcedureRepository,
                             ProcedureResultRepository procedureResultRepository,
                             MedicalRecordProcedureResultRepository medicalRecordProcedureResultRepository,
-                            EntityManager entityManager) {
+                            EntityManager entityManager,
+                            BillingService billingService) {
 
         this.performedProcedureRepository = performedProcedureRepository;
         this.procedureRepository = procedureRepository;
@@ -50,6 +52,7 @@ public class ProcedureService {
         this.procedureResultRepository = procedureResultRepository;
         this.medicalRecordProcedureResultRepository = medicalRecordProcedureResultRepository;
         this.entityManager = entityManager;
+        this.billingService = billingService;
     }
 
     // ================= REQUEST PROCEDURE (NEW) =================
@@ -96,7 +99,12 @@ public class ProcedureService {
         }
 
         logger.info("Requested procedure {} for patient {} by doctor {}", procedureId, patientId, doctorId);
-        return performedProcedureRepository.saveAndFlush(performed);
+        PerformedProcedures saved = performedProcedureRepository.saveAndFlush(performed);
+
+        // Auto-generate billing for the patient on this date
+        billingService.autoGenerateBillingForPatientService(patientId, procedureDate);
+
+        return saved;
     }
 
     // ================= UC016 =================
@@ -141,7 +149,12 @@ public class ProcedureService {
         }
 
         logger.info("Recorded procedure {} for patient {}", procedureId, patientId);
-        return performedProcedureRepository.saveAndFlush(performed);
+        PerformedProcedures saved = performedProcedureRepository.saveAndFlush(performed);
+
+        // Auto-generate billing for the patient on this date
+        billingService.autoGenerateBillingForPatientService(patientId, procedureDate);
+
+        return saved;
     }
 
     // ================= UC017 =================
