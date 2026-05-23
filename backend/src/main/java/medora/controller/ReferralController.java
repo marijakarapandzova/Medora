@@ -1,11 +1,8 @@
 package medora.controller;
 
-import medora.dto.CreateReferralRequest;
 import medora.dto.ReferralDTO;
-import medora.models.domain.MedicalRecord;
+import medora.dto.CreateReferralRequest;
 import medora.models.domain.Referrals;
-import medora.repository.MedicalRecordRepository;
-import medora.service.AppointmentService;
 import medora.service.ReferralService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,15 +21,9 @@ public class ReferralController {
     private static final Logger logger = LoggerFactory.getLogger(ReferralController.class);
 
     private final ReferralService referralService;
-    private final AppointmentService appointmentService;
-    private final MedicalRecordRepository medicalRecordRepository;
 
-    public ReferralController(ReferralService referralService,
-                            AppointmentService appointmentService,
-                            MedicalRecordRepository medicalRecordRepository) {
+    public ReferralController(ReferralService referralService) {
         this.referralService = referralService;
-        this.appointmentService = appointmentService;
-        this.medicalRecordRepository = medicalRecordRepository;
     }
 
     @PostMapping
@@ -55,31 +45,24 @@ public class ReferralController {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Referral reason is required"));
             }
+            if (request.getAppointmentDate() == null) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Appointment date is required"));
+            }
+            if (request.getAppointmentTime() == null) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Appointment time is required"));
+            }
 
             Referrals referral = referralService.createReferral(
                     request.getMedicalRecordId(),
                     request.getFromDoctorId(),
                     request.getToDoctorId(),
                     request.getReason(),
-                    request.getReferralDate()
+                    request.getReferralDate(),
+                    request.getAppointmentDate(),
+                    request.getAppointmentTime()
             );
-
-            // Create an appointment for the referral
-            try {
-                MedicalRecord medicalRecord = medicalRecordRepository.findById(request.getMedicalRecordId())
-                        .orElseThrow(() -> new RuntimeException("Medical record not found"));
-                Long patientId = medicalRecord.getPatient().getPatientId();
-
-                appointmentService.createAppointment(
-                        patientId,
-                        request.getToDoctorId(),
-                        request.getReferralDate(),
-                        LocalTime.of(10, 0) // Default appointment time at 10:00 AM
-                );
-                logger.info("Created appointment for referral with ID: {}", referral.getReferralId());
-            } catch (Exception e) {
-                logger.warn("Failed to create appointment for referral: {}", e.getMessage());
-            }
 
             ReferralDTO dto = convertToDTO(referral);
             return ResponseEntity.status(HttpStatus.CREATED).body(dto);
@@ -249,7 +232,9 @@ public class ReferralController {
                 toDoctorId,
                 toDoctorName,
                 referral.getReason(),
-                referral.getReferralDate()
+                referral.getReferralDate(),
+                referral.getAppointmentDate(),
+                referral.getAppointmentTime()
         );
     }
 }
