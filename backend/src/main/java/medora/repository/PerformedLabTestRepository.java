@@ -21,4 +21,5 @@ public interface PerformedLabTestRepository extends JpaRepository<PerformedLabTe
         AND plt.testDate = :testDate
     """)
     List<PerformedLabTests> findByPatientAndDate(@Param("patientId") Long patientId, @Param("testDate") java.time.LocalDate testDate);
+
 }

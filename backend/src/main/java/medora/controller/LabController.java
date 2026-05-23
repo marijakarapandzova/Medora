@@ -277,6 +277,38 @@ public class LabController {
         }
     }
 
+    @GetMapping("/requests/pending")
+    public ResponseEntity<?> getPendingLabTests(HttpServletRequest httpRequest) {
+        try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+
+            if (!role.equals("LAB_TECHNICIAN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only lab technicians can view pending tests"));
+            }
+
+            logger.info("Fetching pending lab tests");
+            List<PerformedLabTests> pendingTests = labService.getPendingLabTests();
+            List<LabTestRequestDTO> dtos = pendingTests.stream()
+                    .map(this::convertPerformedTestToDTO)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
+        } catch (RuntimeException e) {
+            logger.error("Error fetching pending lab tests: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error fetching pending lab tests: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch pending lab tests: " + e.getMessage()));
+        }
+    }
+
     private LabTestDTO convertToDTO(LabTests labTest) {
         return new LabTestDTO(
                 labTest.getTestId(),
@@ -294,6 +326,7 @@ public class LabController {
                 performedTest.getPatient().getFirstName() + " " + performedTest.getPatient().getLastName(),
                 performedTest.getDoctor().getDoctorId(),
                 performedTest.getDoctor().getFirstName() + " " + performedTest.getDoctor().getLastName(),
+                performedTest.getCreatedAt() != null ? performedTest.getCreatedAt().toLocalDate() : performedTest.getTestDate(),
                 performedTest.getTestDate(),
                 performedTest.getNotes()
         );

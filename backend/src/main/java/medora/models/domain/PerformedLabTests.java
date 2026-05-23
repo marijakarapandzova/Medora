@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -37,18 +38,21 @@ public class PerformedLabTests {
     @Column(name = "test_date", nullable = false)
     private LocalDate testDate;
 
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
     private String notes;
 
     public PerformedLabTests() {
     }
 
     public PerformedLabTests(Long performedTestId,
-                            LabTests labTest,
-                            Patient patient,
-                            Doctors doctor,
-                            LabTechnician technician,
-                            LocalDate testDate,
-                            String notes) {
+                             LabTests labTest,
+                             Patient patient,
+                             Doctors doctor,
+                             LabTechnician technician,
+                             LocalDate testDate,
+                             String notes) {
         this.performedTestId = performedTestId;
         this.labTest = labTest;
         this.patient = patient;

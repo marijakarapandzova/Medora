@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * LabService handles lab test and lab result operations.
+ *
  * UC013 – Record Lab Test Request
  * UC014 – Store Lab Results
  * UC015 – Link Medical Data to Medical Record
@@ -52,7 +52,7 @@ public class LabService {
         this.billingService = billingService;
     }
 
-    // ================= LAB TEST =================
+
 
     @Transactional
     public LabTests requestLabTest(String testName, String description,
@@ -106,7 +106,7 @@ public class LabService {
         return labTestRepository.save(test);
     }
 
-    // ================= LAB TEST REQUESTS (UC013) =================
+    // UC013
 
     @Transactional
     public PerformedLabTests requestLabTestForPatient(Long patientId,
@@ -171,7 +171,7 @@ public class LabService {
         return performedLabTestRepository.findByDoctorDoctorId(doctorId);
     }
 
-    // ================= LAB RESULTS (UC014, UC015) =================
+    //UC014, UC015
 
     @Transactional
     public MedicalRecordLabResults storeLabResult(Long medicalRecordId,
@@ -218,5 +218,30 @@ public class LabService {
             throw new RuntimeException("Medical record not found");
 
         return medicalRecordLabResultRepository.findByMedicalRecordRecordId(medicalRecordId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PerformedLabTests> getPendingLabTests() {
+        // Get all performed tests and filter to only those without results
+        List<PerformedLabTests> allTests = performedLabTestRepository.findAll();
+
+        return allTests.stream()
+                .filter(test -> {
+                    // Get the patient's medical record
+                    Optional<MedicalRecord> recordOpt = medicalRecordRepository.findByPatientPatientId(test.getPatient().getPatientId());
+                    if (recordOpt.isEmpty()) {
+                        return true; // No medical record, so no results possible
+                    }
+
+                    MedicalRecord record = recordOpt.get();
+                    // Check if this test has results in this medical record
+                    List<MedicalRecordLabResults> results = medicalRecordLabResultRepository
+                            .findByMedicalRecordRecordId(record.getRecordId());
+
+                    // Filter to only results for this specific test
+                    return results.stream()
+                            .noneMatch(r -> r.getLabResult().getLabTest().getTestId().equals(test.getLabTest().getTestId()));
+                })
+                .toList();
     }
 }
