@@ -1,16 +1,15 @@
 package medora.controller;
 
 import medora.dto.*;
-import medora.models.domain.LabResults;
-import medora.models.domain.LabTests;
-import medora.models.domain.MedicalRecordLabResults;
-import medora.models.domain.PerformedLabTests;
+import medora.models.domain.*;
 import medora.service.LabService;
+import medora.util.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -23,14 +22,28 @@ public class LabController {
     private static final Logger logger = LoggerFactory.getLogger(LabController.class);
 
     private final LabService labService;
+    private final SecurityUtil securityUtil;
 
-    public LabController(LabService labService) {
+    public LabController(LabService labService, SecurityUtil securityUtil) {
         this.labService = labService;
+        this.securityUtil = securityUtil;
     }
 
     @PostMapping
-    public ResponseEntity<?> createLabTest(@RequestBody CreateLabTestRequest request) {
+    public ResponseEntity<?> createLabTest(@RequestBody CreateLabTestRequest request, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Only ADMIN can create lab tests
+            if (!role.equals("ADMIN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only administrators can create lab tests"));
+            }
+
             if (request.getTestName() == null || request.getTestName().isBlank()) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Test name is required"));
@@ -99,7 +112,7 @@ public class LabController {
 
     @PutMapping("/{testId}")
     public ResponseEntity<?> updateLabTest(@PathVariable Long testId,
-                                          @RequestBody CreateLabTestRequest request) {
+                                           @RequestBody CreateLabTestRequest request) {
         try {
             logger.info("Updating lab test with ID: {}", testId);
             LabTests updatedTest = labService.updateLabTest(
@@ -122,8 +135,20 @@ public class LabController {
     }
 
     @PostMapping("/request")
-    public ResponseEntity<?> requestLabTest(@RequestBody RequestLabTestRequest request) {
+    public ResponseEntity<?> requestLabTest(@RequestBody RequestLabTestRequest request, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Patients cannot request lab tests
+            if (role.equals("PATIENT")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Patients cannot request lab tests"));
+            }
+
             logger.info("Requesting lab test {} for patient {}", request.getTestId(), request.getPatientId());
 
             PerformedLabTests performedTest = labService.requestLabTestForPatient(
@@ -192,8 +217,20 @@ public class LabController {
     }
 
     @PostMapping("/results")
-    public ResponseEntity<?> submitLabResult(@RequestBody SubmitLabResultRequest request) {
+    public ResponseEntity<?> submitLabResult(@RequestBody SubmitLabResultRequest request, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Only LAB_TECHNICIAN can submit lab results (not DOCTOR)
+            if (!role.equals("LAB_TECHNICIAN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only lab technicians can submit lab results"));
+            }
+
             logger.info("Submitting lab result for medical record {}", request.getMedicalRecordId());
 
             MedicalRecordLabResults result = labService.storeLabResult(

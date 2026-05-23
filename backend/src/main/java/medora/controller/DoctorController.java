@@ -1,16 +1,22 @@
 package medora.controller;
 
-import medora.dto.*;
-import medora.models.domain.Departments;
+import medora.dto.DoctorDTO;
+import medora.dto.CreateDoctorRequest;
+import medora.dto.DoctorLevelDTO;
+import medora.dto.DoctorSpecializationDTO;
+import medora.dto.DepartmentDTO;
+import medora.models.domain.Doctors;
 import medora.models.domain.DoctorLevel;
 import medora.models.domain.DoctorSpecialization;
-import medora.models.domain.Doctors;
+import medora.models.domain.Departments;
 import medora.service.DoctorService;
+import medora.util.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -23,14 +29,27 @@ public class DoctorController {
     private static final Logger logger = LoggerFactory.getLogger(DoctorController.class);
 
     private final DoctorService doctorService;
+    private final SecurityUtil securityUtil;
 
-    public DoctorController(DoctorService doctorService) {
+    public DoctorController(DoctorService doctorService, SecurityUtil securityUtil) {
         this.doctorService = doctorService;
+        this.securityUtil = securityUtil;
     }
 
     @PostMapping
-    public ResponseEntity<?> createDoctor(@RequestBody CreateDoctorRequest request) {
+    public ResponseEntity<?> createDoctor(@RequestBody CreateDoctorRequest request, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Only ADMIN can create doctors
+            if (!role.equals("ADMIN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only administrators can create doctors"));
+            }
             if (request.getFirstName() == null || request.getFirstName().isBlank()) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "First name is required"));
@@ -192,8 +211,21 @@ public class DoctorController {
 
     @PutMapping("/{doctorId}")
     public ResponseEntity<?> updateDoctor(@PathVariable Long doctorId,
-                                         @RequestBody CreateDoctorRequest request) {
+                                          @RequestBody CreateDoctorRequest request,
+                                          HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Only ADMIN can update doctors
+            if (!role.equals("ADMIN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only administrators can update doctors"));
+            }
+
             logger.info("Updating doctor with ID: {}", doctorId);
 
             Doctors doctorDetails = new Doctors();

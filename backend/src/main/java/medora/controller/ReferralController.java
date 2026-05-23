@@ -4,11 +4,13 @@ import medora.dto.ReferralDTO;
 import medora.dto.CreateReferralRequest;
 import medora.models.domain.Referrals;
 import medora.service.ReferralService;
+import medora.util.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -21,14 +23,28 @@ public class ReferralController {
     private static final Logger logger = LoggerFactory.getLogger(ReferralController.class);
 
     private final ReferralService referralService;
+    private final SecurityUtil securityUtil;
 
-    public ReferralController(ReferralService referralService) {
+    public ReferralController(ReferralService referralService, SecurityUtil securityUtil) {
         this.referralService = referralService;
+        this.securityUtil = securityUtil;
     }
 
     @PostMapping
-    public ResponseEntity<?> createReferral(@RequestBody CreateReferralRequest request) {
+    public ResponseEntity<?> createReferral(@RequestBody CreateReferralRequest request, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Patients cannot create referrals
+            if (role.equals("PATIENT")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Patients cannot create referrals"));
+            }
+
             if (request.getMedicalRecordId() == null || request.getMedicalRecordId() <= 0) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Valid medical record ID is required"));

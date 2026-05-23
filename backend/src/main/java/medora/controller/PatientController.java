@@ -1,14 +1,16 @@
 package medora.controller;
 
-import medora.dto.CreatePatientRequest;
 import medora.dto.PatientDTO;
+import medora.dto.CreatePatientRequest;
 import medora.models.domain.Patient;
 import medora.service.PatientService;
+import medora.util.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -21,14 +23,27 @@ public class PatientController {
     private static final Logger logger = LoggerFactory.getLogger(PatientController.class);
 
     private final PatientService patientService;
+    private final SecurityUtil securityUtil;
 
-    public PatientController(PatientService patientService) {
+    public PatientController(PatientService patientService, SecurityUtil securityUtil) {
         this.patientService = patientService;
+        this.securityUtil = securityUtil;
     }
 
     @PostMapping
-    public ResponseEntity<?> createPatient(@RequestBody CreatePatientRequest request) {
+    public ResponseEntity<?> createPatient(@RequestBody CreatePatientRequest request, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Only ADMIN can create patients
+            if (!role.equals("ADMIN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only administrators can create patients"));
+            }
             if (request.getFirstName() == null || request.getFirstName().isBlank()) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "First name is required"));
@@ -143,8 +158,21 @@ public class PatientController {
 
     @PutMapping("/{patientId}")
     public ResponseEntity<?> updatePatient(@PathVariable Long patientId,
-                                          @RequestBody CreatePatientRequest request) {
+                                           @RequestBody CreatePatientRequest request,
+                                           HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Only ADMIN can update patients
+            if (!role.equals("ADMIN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only administrators can update patients"));
+            }
+
             logger.info("Updating patient with ID: {}", patientId);
 
             Patient patientDetails = new Patient();

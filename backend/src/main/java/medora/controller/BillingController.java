@@ -8,6 +8,7 @@ import medora.models.domain.Billing;
 import medora.models.enums.PaymentStatus;
 import medora.service.BillingService;
 import medora.util.BillingPDFGenerator;
+import medora.util.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,14 +30,28 @@ public class BillingController {
     private static final Logger logger = LoggerFactory.getLogger(BillingController.class);
 
     private final BillingService billingService;
+    private final SecurityUtil securityUtil;
 
-    public BillingController(BillingService billingService) {
+    public BillingController(BillingService billingService, SecurityUtil securityUtil) {
         this.billingService = billingService;
+        this.securityUtil = securityUtil;
     }
 
     @PostMapping
-    public ResponseEntity<?> generateBillingRecord(@RequestBody CreateBillingRequest request) {
+    public ResponseEntity<?> generateBillingRecord(@RequestBody CreateBillingRequest request, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Only ADMIN can generate billing records (doctors cannot access billing)
+            if (!role.equals("ADMIN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only administrators can generate billing records"));
+            }
+
             if (request.getMedicalRecordId() == null || request.getMedicalRecordId() <= 0) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Valid medical record ID is required"));
@@ -69,12 +85,39 @@ public class BillingController {
     }
 
     @GetMapping("/{billId}")
-    public ResponseEntity<?> getBillingById(@PathVariable Long billId) {
+    public ResponseEntity<?> getBillingById(@PathVariable Long billId, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Doctors cannot access billing
+            if (role.equals("DOCTOR")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Doctors cannot access billing records"));
+            }
+
             logger.info("Fetching billing record with ID: {}", billId);
-            return billingService.getBillingById(billId)
-                    .map(b -> ResponseEntity.ok(convertToDTO(b)))
-                    .orElse(ResponseEntity.notFound().build());
+            var billing = billingService.getBillingById(billId);
+            if (billing.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Patients can only view their own billing records
+            if (role.equals("PATIENT")) {
+                Long patientIdFromToken = securityUtil.getPatientIdFromRequest(httpRequest);
+                Long billPatientId = billing.get().getMedicalRecord() != null && billing.get().getMedicalRecord().getPatient() != null
+                        ? billing.get().getMedicalRecord().getPatient().getPatientId()
+                        : null;
+                if (patientIdFromToken == null || !patientIdFromToken.equals(billPatientId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "You can only view your own billing records"));
+                }
+            }
+
+            return ResponseEntity.ok(convertToDTO(billing.get()));
         } catch (RuntimeException e) {
             logger.error("Error fetching billing record: {}", e.getMessage());
             return ResponseEntity.badRequest()
@@ -87,10 +130,32 @@ public class BillingController {
     }
 
     @GetMapping("/{billId}/detail")
-    public ResponseEntity<?> getBillingDetail(@PathVariable Long billId) {
+    public ResponseEntity<?> getBillingDetail(@PathVariable Long billId, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Doctors cannot access billing
+            if (role.equals("DOCTOR")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Doctors cannot access billing records"));
+            }
+
             logger.info("Fetching detailed billing information for bill ID: {}", billId);
             BillingDetailDTO detail = billingService.getBillingDetail(billId);
+
+            // Patients can only view their own billing details
+            if (role.equals("PATIENT")) {
+                Long patientIdFromToken = securityUtil.getPatientIdFromRequest(httpRequest);
+                if (patientIdFromToken == null || detail == null || !patientIdFromToken.equals(detail.getPatientId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "You can only view your own billing records"));
+                }
+            }
+
             return ResponseEntity.ok(detail);
         } catch (RuntimeException e) {
             logger.error("Error fetching billing detail: {}", e.getMessage());
@@ -104,8 +169,20 @@ public class BillingController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllBillings() {
+    public ResponseEntity<?> getAllBillings(HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Doctors and Patients cannot view all billing records
+            if (role.equals("PATIENT") || role.equals("DOCTOR")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You cannot view all billing records"));
+            }
+
             logger.info("Fetching all billing records");
             List<Billing> billings = billingService.getAllBillingRecords();
             List<BillingDTO> dtos = billings.stream()
@@ -124,8 +201,29 @@ public class BillingController {
     }
 
     @GetMapping("/patient/{patientId}")
-    public ResponseEntity<?> getBillingHistoryForPatient(@PathVariable Long patientId) {
+    public ResponseEntity<?> getBillingHistoryForPatient(@PathVariable Long patientId, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Doctors cannot access billing
+            if (role.equals("DOCTOR")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Doctors cannot access billing records"));
+            }
+
+            // Patients can only view their own billing history
+            if (role.equals("PATIENT")) {
+                Long patientIdFromToken = securityUtil.getPatientIdFromRequest(httpRequest);
+                if (patientIdFromToken == null || !patientIdFromToken.equals(patientId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "You can only view your own billing records"));
+                }
+            }
+
             logger.info("Fetching billing history for patient ID: {}", patientId);
             List<Billing> billings = billingService.getBillingHistoryForPatient(patientId);
             List<BillingDTO> dtos = billings.stream()
@@ -145,8 +243,21 @@ public class BillingController {
 
     @PatchMapping("/{billId}/payment-status")
     public ResponseEntity<?> updatePaymentStatus(@PathVariable Long billId,
-                                                 @RequestBody UpdateBillingRequest request) {
+                                                 @RequestBody UpdateBillingRequest request,
+                                                 HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Only ADMIN can update payment status
+            if (!role.equals("ADMIN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only administrators can update payment status"));
+            }
+
             if (request.getPaymentStatus() == null) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Payment status is required"));
@@ -169,10 +280,32 @@ public class BillingController {
     }
 
     @GetMapping("/{billId}/invoice-pdf")
-    public ResponseEntity<?> downloadInvoicePDF(@PathVariable Long billId) {
+    public ResponseEntity<?> downloadInvoicePDF(@PathVariable Long billId, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Doctors cannot access billing
+            if (role.equals("DOCTOR")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Doctors cannot access billing records"));
+            }
+
             logger.info("Generating PDF invoice for bill ID: {}", billId);
             BillingDetailDTO billingDetail = billingService.getBillingDetail(billId);
+
+            // Patients can only download their own invoices
+            if (role.equals("PATIENT")) {
+                Long patientIdFromToken = securityUtil.getPatientIdFromRequest(httpRequest);
+                if (patientIdFromToken == null || !patientIdFromToken.equals(billingDetail.getPatientId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "You can only download your own invoices"));
+                }
+            }
+
             byte[] pdfContent = BillingPDFGenerator.generateInvoicePDF(billingDetail);
 
             HttpHeaders headers = new HttpHeaders();

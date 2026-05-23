@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>medora</groupId>
-    <artifactId>medora4</artifactId>
+    <artifactId>medora5</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>medora5</name>
     <description>medora5</description>

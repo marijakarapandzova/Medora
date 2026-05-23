@@ -2,16 +2,20 @@ package medora.controller;
 
 import medora.dto.AppointmentDTO;
 import medora.dto.CreateAppointmentRequest;
-import medora.dto.DoctorDTO;
 import medora.dto.PatientDTO;
+import medora.dto.DoctorDTO;
 import medora.models.domain.Appointment;
+import medora.models.domain.Patient;
+import medora.models.domain.Doctors;
 import medora.service.AppointmentService;
+import medora.util.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,14 +29,22 @@ public class AppointmentController {
     private static final Logger logger = LoggerFactory.getLogger(AppointmentController.class);
 
     private final AppointmentService appointmentService;
+    private final SecurityUtil securityUtil;
 
-    public AppointmentController(AppointmentService appointmentService) {
+    public AppointmentController(AppointmentService appointmentService, SecurityUtil securityUtil) {
         this.appointmentService = appointmentService;
+        this.securityUtil = securityUtil;
     }
 
     @PostMapping
-    public ResponseEntity<?> createAppointment(@RequestBody CreateAppointmentRequest request) {
+    public ResponseEntity<?> createAppointment(@RequestBody CreateAppointmentRequest request, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
             if (request.getPatientId() == null || request.getPatientId() <= 0) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Valid patient ID is required"));
@@ -48,6 +60,15 @@ public class AppointmentController {
             if (request.getAppointmentTime() == null) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Appointment time is required"));
+            }
+
+            // Patients can only create appointments for themselves
+            if (role.equals("PATIENT")) {
+                Long patientIdFromToken = securityUtil.getPatientIdFromRequest(httpRequest);
+                if (patientIdFromToken == null || !patientIdFromToken.equals(request.getPatientId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "You can only create appointments for yourself"));
+                }
             }
 
             Appointment appointment = appointmentService.createAppointment(
@@ -89,10 +110,37 @@ public class AppointmentController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllAppointments() {
+    public ResponseEntity<?> getAllAppointments(HttpServletRequest httpRequest) {
         try {
-            logger.info("Fetching all appointments");
-            List<Appointment> appointments = appointmentService.getAllAppointments();
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Patients cannot view all appointments
+            if (role.equals("PATIENT")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Patients cannot view all appointments"));
+            }
+
+            List<Appointment> appointments;
+
+            // Doctors can only view their own appointments
+            if (role.equals("DOCTOR")) {
+                Long doctorIdFromToken = securityUtil.getDoctorIdFromRequest(httpRequest);
+                if (doctorIdFromToken == null || doctorIdFromToken <= 0) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "Doctor ID not found in token"));
+                }
+                logger.info("Fetching appointments for doctor ID: {}", doctorIdFromToken);
+                appointments = appointmentService.getAppointmentsForDoctor(doctorIdFromToken);
+            } else {
+                // ADMIN and other roles can view all appointments
+                logger.info("Fetching all appointments");
+                appointments = appointmentService.getAllAppointments();
+            }
+
             List<AppointmentDTO> dtos = appointments.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
@@ -109,8 +157,23 @@ public class AppointmentController {
     }
 
     @GetMapping("/patient/{patientId}")
-    public ResponseEntity<?> getAppointmentsForPatient(@PathVariable Long patientId) {
+    public ResponseEntity<?> getAppointmentsForPatient(@PathVariable Long patientId, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Patients can only view their own appointments
+            if (role.equals("PATIENT")) {
+                Long patientIdFromToken = securityUtil.getPatientIdFromRequest(httpRequest);
+                if (patientIdFromToken == null || !patientIdFromToken.equals(patientId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "You can only view your own appointments"));
+                }
+            }
+
             logger.info("Fetching appointments for patient ID: {}", patientId);
             List<Appointment> appointments = appointmentService.getAppointmentsForPatient(patientId);
             List<AppointmentDTO> dtos = appointments.stream()
@@ -171,10 +234,29 @@ public class AppointmentController {
     }
 
     @PatchMapping("/{appointmentId}/cancel")
-    public ResponseEntity<?> cancelAppointment(@PathVariable Long appointmentId) {
+    public ResponseEntity<?> cancelAppointment(@PathVariable Long appointmentId, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Verify appointment exists and check permissions for patients
+            Appointment appointment = appointmentService.getAppointmentById(appointmentId)
+                    .orElseThrow(() -> new RuntimeException("Appointment not found"));
+
+            if (role.equals("PATIENT")) {
+                Long patientIdFromToken = securityUtil.getPatientIdFromRequest(httpRequest);
+                Long appointmentPatientId = appointment.getPatient() != null ? appointment.getPatient().getPatientId() : null;
+                if (patientIdFromToken == null || !patientIdFromToken.equals(appointmentPatientId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "You can only cancel your own appointments"));
+                }
+            }
+
             logger.info("Cancelling appointment with ID: {}", appointmentId);
-            Appointment appointment = appointmentService.cancelAppointment(appointmentId);
+            appointment = appointmentService.cancelAppointment(appointmentId);
             AppointmentDTO dto = convertToDTO(appointment);
             return ResponseEntity.ok(dto);
         } catch (RuntimeException e) {
@@ -189,8 +271,20 @@ public class AppointmentController {
     }
 
     @PatchMapping("/{appointmentId}/complete")
-    public ResponseEntity<?> completeAppointment(@PathVariable Long appointmentId) {
+    public ResponseEntity<?> completeAppointment(@PathVariable Long appointmentId, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Only ADMIN and DOCTOR can complete appointments
+            if (role.equals("PATIENT")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Patients cannot complete appointments"));
+            }
+
             logger.info("Completing appointment with ID: {}", appointmentId);
             Appointment appointment = appointmentService.completeAppointment(appointmentId);
             AppointmentDTO dto = convertToDTO(appointment);

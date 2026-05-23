@@ -3,11 +3,13 @@ package medora.controller;
 import medora.models.domain.Departments;
 import medora.models.domain.Doctors;
 import medora.service.DepartmentService;
+import medora.util.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -20,9 +22,11 @@ public class DepartmentController {
     private static final Logger logger = LoggerFactory.getLogger(DepartmentController.class);
 
     private final DepartmentService departmentService;
+    private final SecurityUtil securityUtil;
 
-    public DepartmentController(DepartmentService departmentService) {
+    public DepartmentController(DepartmentService departmentService, SecurityUtil securityUtil) {
         this.departmentService = departmentService;
+        this.securityUtil = securityUtil;
     }
 
     /**
@@ -66,7 +70,9 @@ public class DepartmentController {
         }
     }
 
-
+    /**
+     * Get department by name
+     */
     @GetMapping("/name/{departmentName}")
     public ResponseEntity<?> getDepartmentByName(@PathVariable String departmentName) {
         try {
@@ -109,10 +115,24 @@ public class DepartmentController {
         }
     }
 
-
+    /**
+     * Create a new department
+     */
     @PostMapping
-    public ResponseEntity<?> createDepartment(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> createDepartment(@RequestBody Map<String, String> request, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Only ADMIN can create departments
+            if (!role.equals("ADMIN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only administrators can create departments"));
+            }
+
             String departmentName = request.get("departmentName");
             if (departmentName == null || departmentName.isBlank()) {
                 return ResponseEntity.badRequest()
@@ -136,11 +156,26 @@ public class DepartmentController {
         }
     }
 
-
+    /**
+     * Update a department
+     */
     @PutMapping("/{departmentId}")
     public ResponseEntity<?> updateDepartment(@PathVariable Long departmentId,
-                                              @RequestBody Map<String, String> request) {
+                                              @RequestBody Map<String, String> request,
+                                              HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Only ADMIN can update departments
+            if (!role.equals("ADMIN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only administrators can update departments"));
+            }
+
             String departmentName = request.get("departmentName");
             if (departmentName == null || departmentName.isBlank()) {
                 return ResponseEntity.badRequest()

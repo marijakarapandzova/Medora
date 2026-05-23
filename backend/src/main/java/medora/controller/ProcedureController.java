@@ -4,14 +4,17 @@ import medora.dto.ProcedureRequestDTO;
 import medora.dto.RequestProcedureRequest;
 import medora.dto.SubmitProcedureResultRequest;
 import medora.models.domain.PerformedProcedures;
+import medora.models.domain.Procedure;
 import medora.models.domain.ProcedureResults;
 import medora.service.ProcedureService;
+import medora.util.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,9 +28,11 @@ public class ProcedureController {
     private static final Logger logger = LoggerFactory.getLogger(ProcedureController.class);
 
     private final ProcedureService procedureService;
+    private final SecurityUtil securityUtil;
 
-    public ProcedureController(ProcedureService procedureService) {
+    public ProcedureController(ProcedureService procedureService, SecurityUtil securityUtil) {
         this.procedureService = procedureService;
+        this.securityUtil = securityUtil;
     }
 
     @GetMapping("/available")
@@ -47,8 +52,20 @@ public class ProcedureController {
     }
 
     @PostMapping("/request")
-    public ResponseEntity<?> requestProcedure(@RequestBody RequestProcedureRequest request) {
+    public ResponseEntity<?> requestProcedure(@RequestBody RequestProcedureRequest request, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Patients cannot request procedures
+            if (role.equals("PATIENT")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Patients cannot request procedures"));
+            }
+
             logger.info("Requesting procedure {} for patient {}", request.getProcedureId(), request.getPatientId());
 
             PerformedProcedures performedProcedure = procedureService.requestProcedureForPatient(
@@ -206,8 +223,21 @@ public class ProcedureController {
     @PatchMapping("/{procedureId}/outcome")
     public ResponseEntity<?> recordProcedureOutcome(
             @PathVariable Long procedureId,
-            @RequestParam String notes) {
+            @RequestParam String notes,
+            HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Only DOCTOR and ADMIN can record procedure outcomes
+            if (role.equals("PATIENT")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Patients cannot record procedure outcomes"));
+            }
+
             logger.info("Recording procedure outcome for ID: {}", procedureId);
             PerformedProcedures procedure = procedureService.recordProcedureOutcome(procedureId, notes);
 
@@ -231,8 +261,20 @@ public class ProcedureController {
     }
 
     @PostMapping("/results")
-    public ResponseEntity<?> submitProcedureResult(@RequestBody SubmitProcedureResultRequest request) {
+    public ResponseEntity<?> submitProcedureResult(@RequestBody SubmitProcedureResultRequest request, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // Only DOCTOR can submit procedure results
+            if (!role.equals("DOCTOR")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only doctors can submit procedure results"));
+            }
+
             logger.info("Submitting procedure result for medical record {}", request.getMedicalRecordId());
 
             ProcedureResults result = procedureService.storeProcedureResult(
@@ -291,11 +333,12 @@ public class ProcedureController {
 
     private Map<String, Object> convertResultToDTO(ProcedureResults result) {
         return Map.of(
-            "resultId", result.getResultId(),
-            "procedureId", result.getProcedure().getProcedureId(),
-            "procedureType", result.getProcedure().getProcedureType(),
-            "resultDescription", result.getResultDescription() != null ? result.getResultDescription() : "",
-            "resultDate", result.getResultDate()
+                "resultId", result.getResultId(),
+                "procedureId", result.getProcedure().getProcedureId(),
+                "procedureType", result.getProcedure().getProcedureType(),
+                "resultDescription", result.getResultDescription() != null ? result.getResultDescription() : "",
+                "resultDate", result.getResultDate()
         );
     }
 }
+

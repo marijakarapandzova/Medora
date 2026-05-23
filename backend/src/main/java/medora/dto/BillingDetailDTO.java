@@ -6,6 +6,7 @@ import java.util.List;
 
 public class BillingDetailDTO {
     private Long billId;
+    private Long patientId;
     private String patientName;
     private String patientEmbg;
     private String patientPhone;
@@ -18,10 +19,11 @@ public class BillingDetailDTO {
 
     public BillingDetailDTO() {}
 
-    public BillingDetailDTO(Long billId, String patientName, String patientEmbg, String patientPhone,
+    public BillingDetailDTO(Long billId, Long patientId, String patientName, String patientEmbg, String patientPhone,
                             BigDecimal totalCost, String paymentStatus, LocalDate paymentDate,
                             LocalDate billDate, List<BillingItemDTO> procedures, List<BillingItemDTO> labTests) {
         this.billId = billId;
+        this.patientId = patientId;
         this.patientName = patientName;
         this.patientEmbg = patientEmbg;
         this.patientPhone = patientPhone;
@@ -36,6 +38,9 @@ public class BillingDetailDTO {
     // Getters and Setters
     public Long getBillId() { return billId; }
     public void setBillId(Long billId) { this.billId = billId; }
+
+    public Long getPatientId() { return patientId; }
+    public void setPatientId(Long patientId) { this.patientId = patientId; }
 
     public String getPatientName() { return patientName; }
     public void setPatientName(String patientName) { this.patientName = patientName; }
