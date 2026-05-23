@@ -1,6 +1,5 @@
 package medora.service;
 
-import jakarta.persistence.EntityManager;
 import medora.dto.SimpleProcedureDTO;
 import medora.models.domain.*;
 import medora.repository.*;
@@ -9,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -25,7 +25,8 @@ public class ProcedureService {
     private final DiagnosisRepository diagnosisRepository;
     private final MedicalRecordRepository medicalRecordRepository;
     private final MedicalRecordProcedureRepository medicalRecordProcedureRepository;
-
+    private final ProcedureResultRepository procedureResultRepository;
+    private final MedicalRecordProcedureResultRepository medicalRecordProcedureResultRepository;
     private final EntityManager entityManager;
 
     public ProcedureService(PerformedProcedureRepository performedProcedureRepository,
@@ -35,7 +36,8 @@ public class ProcedureService {
                             DiagnosisRepository diagnosisRepository,
                             MedicalRecordRepository medicalRecordRepository,
                             MedicalRecordProcedureRepository medicalRecordProcedureRepository,
-
+                            ProcedureResultRepository procedureResultRepository,
+                            MedicalRecordProcedureResultRepository medicalRecordProcedureResultRepository,
                             EntityManager entityManager) {
 
         this.performedProcedureRepository = performedProcedureRepository;
@@ -45,11 +47,12 @@ public class ProcedureService {
         this.diagnosisRepository = diagnosisRepository;
         this.medicalRecordRepository = medicalRecordRepository;
         this.medicalRecordProcedureRepository = medicalRecordProcedureRepository;
-
+        this.procedureResultRepository = procedureResultRepository;
+        this.medicalRecordProcedureResultRepository = medicalRecordProcedureResultRepository;
         this.entityManager = entityManager;
     }
 
-    //REQUEST PROCEDURE
+    // ================= REQUEST PROCEDURE (NEW) =================
     @Transactional
     public PerformedProcedures requestProcedureForPatient(Long patientId,
                                                           Long doctorId,
@@ -96,7 +99,7 @@ public class ProcedureService {
         return performedProcedureRepository.saveAndFlush(performed);
     }
 
-    // UC016
+    // ================= UC016 =================
     @Transactional
     public PerformedProcedures recordProcedure(Long procedureId,
                                                Long doctorId,
@@ -141,7 +144,7 @@ public class ProcedureService {
         return performedProcedureRepository.saveAndFlush(performed);
     }
 
-    // UC017
+    // ================= UC017 =================
     @Transactional
     public PerformedProcedures recordProcedureOutcome(Long performedProcedureId, String notes) {
 
@@ -159,7 +162,7 @@ public class ProcedureService {
         return performedProcedureRepository.save(performed);
     }
 
-    //  LINK TO MEDICAL RECORD
+    // ================= LINK TO MEDICAL RECORD =================
     @Transactional
     public MedicalRecordProcedures linkProcedureToMedicalRecord(Long medicalRecordId,
                                                                 Long procedureId) {
@@ -188,7 +191,7 @@ public class ProcedureService {
         return medicalRecordProcedureRepository.save(link);
     }
 
-
+    // ================= READ METHODS =================
     @Transactional(readOnly = true)
     public List<PerformedProcedures> getProcedureRequestsForPatient(Long patientId) {
 
@@ -258,4 +261,52 @@ public class ProcedureService {
         return performedProcedureRepository.findById(id);
     }
 
+    // ================= STORE PROCEDURE RESULT (UC017 Enhanced) =================
+    @Transactional
+    public ProcedureResults storeProcedureResult(Long medicalRecordId,
+                                                 Long procedureId,
+                                                 String resultDescription,
+                                                 LocalDate resultDate) {
+
+        if (medicalRecordId == null || medicalRecordId <= 0)
+            throw new IllegalArgumentException("Medical record ID must be valid");
+
+        if (procedureId == null || procedureId <= 0)
+            throw new IllegalArgumentException("Procedure ID must be valid");
+
+        if (resultDate == null)
+            throw new IllegalArgumentException("Result date is required");
+
+        MedicalRecord record = medicalRecordRepository.findById(medicalRecordId)
+                .orElseThrow(() -> new RuntimeException("Medical record not found"));
+
+        Procedure procedure = procedureRepository.findById(procedureId)
+                .orElseThrow(() -> new RuntimeException("Procedure not found"));
+
+        ProcedureResults result = new ProcedureResults();
+        result.setProcedure(procedure);
+        result.setResultDescription(resultDescription);
+        result.setResultDate(resultDate);
+
+        ProcedureResults savedResult = procedureResultRepository.save(result);
+
+        // Link to medical record
+        MedicalRecordProcedureResults link = new MedicalRecordProcedureResults(record, savedResult);
+        medicalRecordProcedureResultRepository.save(link);
+
+        logger.info("Stored procedure result {} for medical record {}", savedResult.getResultId(), medicalRecordId);
+        return savedResult;
     }
+
+    @Transactional(readOnly = true)
+    public List<ProcedureResults> getProcedureResultsForMedicalRecord(Long medicalRecordId) {
+
+        if (medicalRecordId == null || medicalRecordId <= 0)
+            throw new IllegalArgumentException("Medical record ID must be valid");
+
+        if (!medicalRecordRepository.existsById(medicalRecordId))
+            throw new RuntimeException("Medical record not found");
+
+        return procedureResultRepository.findByMedicalRecordId(medicalRecordId);
+    }
+}
