@@ -118,10 +118,10 @@ public class AppointmentController {
                         .body(Map.of("error", "Unauthorized"));
             }
 
-            // Patients cannot view all appointments
-            if (role.equals("PATIENT")) {
+            // Patients, BILLING_ADMIN, and LAB_TECHNICIAN cannot view all appointments
+            if (role.equals("PATIENT") || role.equals("BILLING_ADMIN") || role.equals("LAB_TECHNICIAN")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "Patients cannot view all appointments"));
+                        .body(Map.of("error", "You do not have permission to view appointments"));
             }
 
             List<Appointment> appointments;
@@ -136,7 +136,7 @@ public class AppointmentController {
                 logger.info("Fetching appointments for doctor ID: {}", doctorIdFromToken);
                 appointments = appointmentService.getAppointmentsForDoctor(doctorIdFromToken);
             } else {
-                // ADMIN and other roles can view all appointments
+                // ADMIN can view all appointments
                 logger.info("Fetching all appointments");
                 appointments = appointmentService.getAllAppointments();
             }

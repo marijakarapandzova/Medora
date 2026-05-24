@@ -33,13 +33,13 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
-    // Foreign key to patient (only for PATIENT role)
-    @OneToOne(fetch = FetchType.LAZY)
+    // Foreign key to patient  for PATIENT role
+    @OneToOne(fetch = jakarta.persistence.FetchType.LAZY)
     @JoinColumn(name = "patient_id")
     private Patient patient;
 
-    // Foreign key to doctor (only for DOCTOR role)
-    @OneToOne(fetch = FetchType.LAZY)
+    // Foreign key to doctor for DOCTOR role
+    @OneToOne(fetch = jakarta.persistence.FetchType.LAZY)
     @JoinColumn(name = "doctor_id")
     private Doctors doctor;
 

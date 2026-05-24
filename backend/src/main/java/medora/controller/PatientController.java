@@ -83,8 +83,20 @@ public class PatientController {
     }
 
     @GetMapping("/{patientId}")
-    public ResponseEntity<?> getPatientById(@PathVariable Long patientId) {
+    public ResponseEntity<?> getPatientById(@PathVariable Long patientId, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // BILLING_ADMIN and LAB_TECHNICIAN cannot view patients
+            if (role.equals("BILLING_ADMIN") || role.equals("LAB_TECHNICIAN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You do not have permission to view patients"));
+            }
+
             logger.info("Fetching patient with ID: {}", patientId);
             return patientService.getPatientById(patientId)
                     .map(p -> ResponseEntity.ok(convertToDTO(p)))
@@ -101,8 +113,20 @@ public class PatientController {
     }
 
     @GetMapping("/embg/{embg}")
-    public ResponseEntity<?> getPatientByEmbg(@PathVariable String embg) {
+    public ResponseEntity<?> getPatientByEmbg(@PathVariable String embg, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // BILLING_ADMIN and LAB_TECHNICIAN cannot view patients
+            if (role.equals("BILLING_ADMIN") || role.equals("LAB_TECHNICIAN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You do not have permission to view patients"));
+            }
+
             logger.info("Fetching patient with EMBG: {}", embg);
             return patientService.getPatientByEmbg(embg)
                     .map(p -> ResponseEntity.ok(convertToDTO(p)))
@@ -119,8 +143,20 @@ public class PatientController {
     }
 
     @GetMapping("/email/{emailAddress}")
-    public ResponseEntity<?> getPatientByEmail(@PathVariable String emailAddress) {
+    public ResponseEntity<?> getPatientByEmail(@PathVariable String emailAddress, HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // BILLING_ADMIN and LAB_TECHNICIAN cannot view patients
+            if (role.equals("BILLING_ADMIN") || role.equals("LAB_TECHNICIAN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You do not have permission to view patients"));
+            }
+
             logger.info("Fetching patient with email: {}", emailAddress);
             return patientService.getPatientByEmail(emailAddress)
                     .map(p -> ResponseEntity.ok(convertToDTO(p)))
@@ -137,8 +173,20 @@ public class PatientController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllPatients() {
+    public ResponseEntity<?> getAllPatients(HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // BILLING_ADMIN and LAB_TECHNICIAN cannot view patients
+            if (role.equals("BILLING_ADMIN") || role.equals("LAB_TECHNICIAN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You do not have permission to view patients"));
+            }
+
             logger.info("Fetching all patients");
             List<Patient> patients = patientService.getAllPatients();
             List<PatientDTO> patientDTOs = patients.stream()

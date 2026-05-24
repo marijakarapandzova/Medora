@@ -54,7 +54,7 @@ public interface BillingRepository extends JpaRepository<Billing, Long> {
     """, nativeQuery = true)
     BigDecimal calculateTotalCostForMedicalRecord(@Param("recordId") Long recordId);
 
-    // Helper: Get billing records by payment status
+   //Get billing records by payment status
     @Query("""
         SELECT b FROM Billing b
         WHERE b.paymentStatus = :status
@@ -62,7 +62,7 @@ public interface BillingRepository extends JpaRepository<Billing, Long> {
     """)
     List<Billing> findByPaymentStatus(@Param("status") String status);
 
-    // Helper: Get unpaid bills for a patient
+    // Get unpaid bills for a patient
     @Query("""
         SELECT b FROM Billing b
         WHERE b.medicalRecord.patient.patientId = :patientId
@@ -71,7 +71,7 @@ public interface BillingRepository extends JpaRepository<Billing, Long> {
     """)
     List<Billing> findUnpaidBillsForPatient(@Param("patientId") Long patientId);
 
-    // Helper: Get all bills for a patient sorted by date
+    //Get all bills for a patient sorted by date
     @Query("""
         SELECT b FROM Billing b
         WHERE b.medicalRecord.patient.patientId = :patientId

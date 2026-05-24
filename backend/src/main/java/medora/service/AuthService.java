@@ -53,15 +53,15 @@ public class AuthService {
             throw new RuntimeException("Invalid username or password");
         }
 
-        // Generate JWT token with patientId for patients
         Long patientId = user.getPatient() != null ? user.getPatient().getPatientId() : null;
-        String token = jwtUtil.generateToken(user.getUsername(), user.getRole(), user.getUserId(), patientId);
+        Long doctorId = user.getDoctor() != null ? user.getDoctor().getDoctorId() : null;
+        String token = jwtUtil.generateTokenWithDoctorId(user.getUsername(), user.getRole(), user.getUserId(), patientId, doctorId);
 
-        // Return response
         Map<String, Object> response = new HashMap<>();
         response.put("token", token);
         response.put("userId", user.getUserId());
-        response.put("patientId", user.getPatient() != null ? user.getPatient().getPatientId() : null);
+        response.put("patientId", patientId);
+        response.put("doctorId", doctorId);
         response.put("username", user.getUsername());
         response.put("role", user.getRole());
         response.put("firstName", user.getFirstName());

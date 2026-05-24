@@ -428,6 +428,7 @@ public class BillingService {
         // Build the detail DTO
         BillingDetailDTO detail = new BillingDetailDTO();
         detail.setBillId(billing.getBillId());
+        detail.setPatientId(billing.getMedicalRecord().getPatient().getPatientId());
         detail.setPatientName(billing.getMedicalRecord().getPatient().getFirstName() + " " +
                 billing.getMedicalRecord().getPatient().getLastName());
         detail.setPatientEmbg(billing.getMedicalRecord().getPatient().getEmbg());
