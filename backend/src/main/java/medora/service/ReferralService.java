@@ -19,7 +19,7 @@ import java.util.Optional;
 /**
  * RefferalService handles referral operations.
  * UC019 – Create Referral Record
-
+ * OPTIONAL - Use only if needed
  */
 @Service
 public class ReferralService {
@@ -99,6 +99,9 @@ public class ReferralService {
                 medicalRecordId, fromDoctorId, toDoctorId);
         Referrals savedReferral = referralRepository.save(referral);
 
+        Long patientId = medicalRecord.getPatient().getPatientId();
+        createAppointmentForReferral(patientId, toDoctorId, appointmentDate, appointmentTime);
+
         return savedReferral;
     }
 
@@ -141,7 +144,6 @@ public class ReferralService {
         logger.info("Fetching referrals made by doctor ID: {}", doctorId);
         return referralRepository.findByFromDoctorDoctorId(doctorId);
     }
-
 
     @Transactional(readOnly = true)
     public List<Referrals> getReferralsToDoctor(Long doctorId) {
