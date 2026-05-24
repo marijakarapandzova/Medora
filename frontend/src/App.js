@@ -1,5 +1,5 @@
 
-import './App.css';
+
 import React, { useEffect, useState } from 'react';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -15,6 +15,10 @@ import AppointmentForm from './pages/appointments/AppointmentForm';
 import DepartmentList from './pages/departments/DepartmentList';
 import DepartmentDetail from './pages/departments/DepartmentDetail';
 import DoctorsByDepartment from './pages/departments/DoctorsByDepartment';
+import MedicalRecordList from './pages/medical-records/MedicalRecordList';
+import MedicalRecordDetail from './pages/medical-records/MedicalRecordDetail';
+import ReferralList from './pages/referrals/ReferralList';
+import MedicalReportList from './pages/medical-reports/MedicalReportList';
 
 
 function App() {
@@ -61,6 +65,17 @@ function App() {
               {/* Appointment Routes */}
               <Route path="/appointments" element={<ProtectedRoute><AppointmentList /></ProtectedRoute>} />
               <Route path="/appointments/new" element={<ProtectedRoute><AppointmentForm /></ProtectedRoute>} />
+
+              {/* Medical Record Routes */}
+              <Route path="/medical-records" element={<ProtectedRoute><MedicalRecordList /></ProtectedRoute>} />
+              <Route path="/medical-records/:id" element={<ProtectedRoute><MedicalRecordDetail /></ProtectedRoute>} />
+
+              {/* Medical Report Routes */}
+              <Route path="/medical-reports" element={<ProtectedRoute><MedicalReportList /></ProtectedRoute>} />
+
+
+              {/* Referral Routes */}
+              <Route path="/referrals" element={<ProtectedRoute><ReferralList /></ProtectedRoute>} />
             </Routes>
           </main>
         </div>
