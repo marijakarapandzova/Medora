@@ -1,25 +1,28 @@
-
-
 import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import ProtectedRoute from './components/ProtectedRoute';
-import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
 import PatientList from './pages/patients/PatientList';
 import PatientDetail from './pages/patients/PatientDetail';
 import PatientForm from './pages/patients/PatientForm';
 import DoctorList from './pages/doctors/DoctorList';
 import DoctorDetail from './pages/doctors/DoctorDetail';
-import DoctorForm from './pages/doctors/DoctorForm';v
+import DoctorForm from './pages/doctors/DoctorForm';
 import AppointmentList from './pages/appointments/AppointmentList';
 import AppointmentForm from './pages/appointments/AppointmentForm';
+import MedicalRecordList from './pages/medical-records/MedicalRecordList';
+import MedicalRecordDetail from './pages/medical-records/MedicalRecordDetail';
+import BillingList from './pages/billing/BillingList';
+import BillingDetail from './pages/billing/BillingDetail';
+import ReferralList from './pages/referrals/ReferralList';
+import MedicalReportList from './pages/medical-reports/MedicalReportList';
+import LabTestList from './pages/lab-tests/LabTestList';
+import LabResultForm from './pages/lab-tests/LabResultForm';
+import ProcedureList from './pages/procedures/ProcedureList';
+import ProcedureResultForm from './pages/procedures/ProcedureResultForm';
 import DepartmentList from './pages/departments/DepartmentList';
 import DepartmentDetail from './pages/departments/DepartmentDetail';
 import DoctorsByDepartment from './pages/departments/DoctorsByDepartment';
-import MedicalRecordList from './pages/medical-records/MedicalRecordList';
-import MedicalRecordDetail from './pages/medical-records/MedicalRecordDetail';
-import ReferralList from './pages/referrals/ReferralList';
-import MedicalReportList from './pages/medical-reports/MedicalReportList';
-
 
 function App() {
   const [user, setUser] = useState(null);
@@ -73,16 +76,27 @@ function App() {
               {/* Medical Report Routes */}
               <Route path="/medical-reports" element={<ProtectedRoute><MedicalReportList /></ProtectedRoute>} />
 
-
               {/* Referral Routes */}
               <Route path="/referrals" element={<ProtectedRoute><ReferralList /></ProtectedRoute>} />
+
+              {/* Lab Test Routes */}
+              <Route path="/lab-tests" element={<ProtectedRoute><LabTestList /></ProtectedRoute>} />
+              <Route path="/lab-tests/results" element={<ProtectedRoute><LabResultForm /></ProtectedRoute>} />
+
+              {/* Procedure Routes */}
+              <Route path="/procedures" element={<ProtectedRoute><ProcedureList /></ProtectedRoute>} />
+              <Route path="/procedures/results" element={<ProtectedRoute><ProcedureResultForm /></ProtectedRoute>} />
+
+              {/* Billing Routes */}
+              <Route path="/billing" element={<ProtectedRoute><BillingList /></ProtectedRoute>} />
+              <Route path="/billing/:id" element={<ProtectedRoute><BillingDetail /></ProtectedRoute>} />
+
+
             </Routes>
           </main>
         </div>
       </Router>
   );
+}
 
-
-
-              }
 export default App;
