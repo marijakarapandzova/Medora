@@ -242,7 +242,7 @@ public class AppointmentController {
                         .body(Map.of("error", "Unauthorized"));
             }
 
-            // Verify appointment exists and check permissions for patients
+            // Verify appointment exists and check permissions
             Appointment appointment = appointmentService.getAppointmentById(appointmentId)
                     .orElseThrow(() -> new RuntimeException("Appointment not found"));
 
@@ -250,6 +250,13 @@ public class AppointmentController {
                 Long patientIdFromToken = securityUtil.getPatientIdFromRequest(httpRequest);
                 Long appointmentPatientId = appointment.getPatient() != null ? appointment.getPatient().getPatientId() : null;
                 if (patientIdFromToken == null || !patientIdFromToken.equals(appointmentPatientId)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "You can only cancel your own appointments"));
+                }
+            } else if (role.equals("DOCTOR")) {
+                Long doctorIdFromToken = securityUtil.getDoctorIdFromRequest(httpRequest);
+                Long appointmentDoctorId = appointment.getDoctor() != null ? appointment.getDoctor().getDoctorId() : null;
+                if (doctorIdFromToken == null || !doctorIdFromToken.equals(appointmentDoctorId)) {
                     return ResponseEntity.status(HttpStatus.FORBIDDEN)
                             .body(Map.of("error", "You can only cancel your own appointments"));
                 }

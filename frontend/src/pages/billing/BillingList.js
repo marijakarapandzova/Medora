@@ -12,10 +12,6 @@ function BillingList() {
   const patientId = searchParams.get('patientId');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  useEffect(() => {
-    fetchBillings();
-  }, [patientId]);
-
   const fetchBillings = async () => {
     try {
       setLoading(true);
@@ -23,7 +19,6 @@ function BillingList() {
       if (patientId) {
         response = await billingService.getBillingHistoryForPatient(patientId);
       } else if (user.role === 'PATIENT') {
-        // Patients can only view their own billing history
         response = await billingService.getBillingHistoryForPatient(user.patientId);
       } else {
         response = await billingService.getAllBillings();
@@ -37,17 +32,31 @@ function BillingList() {
     }
   };
 
+  useEffect(() => {
+    fetchBillings();
+  }, [patientId]);
+
+  // Prevent unauthorized access to billing
+  if (user.role === 'DOCTOR' || user.role === 'LAB_TECHNICIAN') {
+    return (
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          <h1 className="text-2xl font-bold" style={{ color: '#7c3aed', marginBottom: '10px' }}>Access Denied</h1>
+          <p style={{ color: 'var(--color-neutral-600)' }}>You do not have permission to access billing records.</p>
+        </div>
+    );
+  }
+
   if (loading) return <Loading />;
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6" style={{ color: '#7c3aed' }}>{patientId ? 'Patient Billing History' : 'Billing Records'}</h1>
+      <div>
+        <h1 className="text-3xl font-bold mb-6" style={{ color: '#7c3aed' }}>{patientId ? 'Patient Billing History' : 'Billing Records'}</h1>
 
-      {error && <ErrorAlert message={error} onClose={() => setError(null)} />}
+        {error && <ErrorAlert message={error} onClose={() => setError(null)} />}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-100">
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-100">
             <tr>
               <th className="px-6 py-3 text-left text-sm font-semibold">Patient</th>
               <th className="px-6 py-3 text-left text-sm font-semibold">Total Cost</th>
@@ -55,33 +64,33 @@ function BillingList() {
               <th className="px-6 py-3 text-left text-sm font-semibold">Payment Date</th>
               <th className="px-6 py-3 text-left text-sm font-semibold">Actions</th>
             </tr>
-          </thead>
-          <tbody>
+            </thead>
+            <tbody>
             {billings.map(billing => (
-              <tr key={billing.billId} className="border-t hover:bg-gray-50">
-                <td className="px-6 py-3">{billing.patientName}</td>
-                <td className="px-6 py-3">${billing.totalCost}</td>
-                <td className="px-6 py-3">
+                <tr key={billing.billId} className="border-t hover:bg-gray-50">
+                  <td className="px-6 py-3">{billing.patientName}</td>
+                  <td className="px-6 py-3">${billing.totalCost}</td>
+                  <td className="px-6 py-3">
                   <span className={`px-3 py-1 rounded text-sm font-semibold ${
-                    billing.paymentStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                    billing.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' :
-                    'bg-red-100 text-red-800'
+                      billing.paymentStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                          billing.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' :
+                              'bg-red-100 text-red-800'
                   }`}>
                     {billing.paymentStatus}
                   </span>
-                </td>
-                <td className="px-6 py-3">{billing.paymentDate || 'Not paid'}</td>
-                <td className="px-6 py-3">
-                  <Link to={`/billing/${billing.billId}`} style={{ color: '#7c3aed', textDecoration: 'none', fontWeight: '400' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>
-                    View
-                  </Link>
-                </td>
-              </tr>
+                  </td>
+                  <td className="px-6 py-3">{billing.paymentDate || 'Not paid'}</td>
+                  <td className="px-6 py-3">
+                    <Link to={`/billing/${billing.billId}`} style={{ color: '#7c3aed', textDecoration: 'none', fontWeight: '400' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>
+                      View
+                    </Link>
+                  </td>
+                </tr>
             ))}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
   );
 }
 
