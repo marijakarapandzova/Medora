@@ -91,8 +91,20 @@ public class LabController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllLabTests() {
+    public ResponseEntity<?> getAllLabTests(HttpServletRequest httpRequest) {
         try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            // BILLING_ADMIN cannot access lab tests
+            if (role.equals("BILLING_ADMIN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "You do not have permission to access lab tests"));
+            }
+
             logger.info("Fetching all lab tests");
             List<LabTests> tests = labService.getAllLabTests();
             List<LabTestDTO> dtos = tests.stream()
@@ -306,6 +318,57 @@ public class LabController {
             logger.error("Unexpected error fetching pending lab tests: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to fetch pending lab tests: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/results")
+    public ResponseEntity<?> getAllSubmittedLabResults(HttpServletRequest httpRequest) {
+        try {
+            String role = securityUtil.getRoleFromRequest(httpRequest);
+            if (role == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Unauthorized"));
+            }
+
+            if (!role.equals("LAB_TECHNICIAN")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only lab technicians can view submitted results"));
+            }
+
+            logger.info("Fetching all submitted lab results");
+            List<MedicalRecordLabResults> results = labService.getAllSubmittedLabResults();
+            List<Map<String, Object>> dtos = results.stream()
+                    .map(recordResult -> {
+                        LabResults labResult = recordResult.getLabResult();
+                        MedicalRecord medicalRecord = recordResult.getMedicalRecord();
+                        String patientName = "N/A";
+                        if (medicalRecord != null && medicalRecord.getPatient() != null) {
+                            Patient patient = medicalRecord.getPatient();
+                            patientName = patient.getFirstName() + " " + patient.getLastName();
+                        }
+                        Map<String, Object> resultMap = new java.util.HashMap<>();
+                        resultMap.put("resultId", labResult.getResultId());
+                        resultMap.put("testId", labResult.getLabTest().getTestId());
+                        resultMap.put("testName", labResult.getLabTest().getTestName());
+                        resultMap.put("patientName", patientName);
+                        resultMap.put("doctorName", "");
+                        resultMap.put("testDate", labResult.getResultDate());
+                        resultMap.put("resultDate", labResult.getResultDate());
+                        resultMap.put("createdDate", labResult.getResultDate());
+                        resultMap.put("results", labResult.getResults());
+                        resultMap.put("description", labResult.getLabTest().getDescription() != null ? labResult.getLabTest().getDescription() : "");
+                        return resultMap;
+                    })
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
+        } catch (RuntimeException e) {
+            logger.error("Error fetching submitted lab results: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error fetching submitted lab results: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch submitted lab results: " + e.getMessage()));
         }
     }
 

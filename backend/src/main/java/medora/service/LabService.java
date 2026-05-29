@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- *
+ * LabService handles lab test and lab result operations.
  * UC013 – Record Lab Test Request
  * UC014 – Store Lab Results
  * UC015 – Link Medical Data to Medical Record
@@ -52,7 +52,7 @@ public class LabService {
         this.billingService = billingService;
     }
 
-
+    // ================= LAB TEST =================
 
     @Transactional
     public LabTests requestLabTest(String testName, String description,
@@ -106,7 +106,7 @@ public class LabService {
         return labTestRepository.save(test);
     }
 
-    // UC013
+    // ================= LAB TEST REQUESTS (UC013) =================
 
     @Transactional
     public PerformedLabTests requestLabTestForPatient(Long patientId,
@@ -171,7 +171,7 @@ public class LabService {
         return performedLabTestRepository.findByDoctorDoctorId(doctorId);
     }
 
-    //UC014, UC015
+    // ================= LAB RESULTS (UC014, UC015) =================
 
     @Transactional
     public MedicalRecordLabResults storeLabResult(Long medicalRecordId,
@@ -243,5 +243,11 @@ public class LabService {
                             .noneMatch(r -> r.getLabResult().getLabTest().getTestId().equals(test.getLabTest().getTestId()));
                 })
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<MedicalRecordLabResults> getAllSubmittedLabResults() {
+        logger.info("Fetching all submitted lab results");
+        return medicalRecordLabResultRepository.findAll();
     }
 }

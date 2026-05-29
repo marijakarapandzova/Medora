@@ -46,9 +46,14 @@ const labService = {
     return api.get(`/lab-tests/results/medical-record/${medicalRecordId}`);
   },
 
-  // Get pending lab tests (for lab technicians)
+  // Get pending lab tests for lab technicians
   getPendingLabTests: () => {
     return api.get('/lab-tests/requests/pending');
+  },
+
+  // Get all submitted lab results for lab technicians
+  getAllSubmittedLabResults: () => {
+    return api.get('/lab-tests/results');
   },
 };
 
