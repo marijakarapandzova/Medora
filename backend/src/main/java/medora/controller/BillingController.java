@@ -252,10 +252,10 @@ public class BillingController {
                         .body(Map.of("error", "Unauthorized"));
             }
 
-            // Only ADMIN can update payment status
-            if (!role.equals("ADMIN")) {
+            // ADMIN and BILLING_ADMIN can update payment status
+            if (!role.equals("ADMIN") && !role.equals("BILLING_ADMIN")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "Only administrators can update payment status"));
+                        .body(Map.of("error", "Only administrators and billing admins can update payment status"));
             }
 
             if (request.getPaymentStatus() == null) {
