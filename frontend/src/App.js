@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import PatientList from './pages/patients/PatientList';
 import PatientDetail from './pages/patients/PatientDetail';
@@ -26,13 +28,40 @@ import DoctorsByDepartment from './pages/departments/DoctorsByDepartment';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      setUser(JSON.parse(userStr));
-    }
-  }, []);
+    const loadUser = () => {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          setUser(JSON.parse(userStr));
+        } catch (err) {
+          console.error('Failed to parse user:', err);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+    };
+
+    loadUser();
+
+    // Listen for storage changes (other tabs/windows)
+    window.addEventListener('storage', loadUser);
+
+    // Create a custom event listener for same-tab changes
+    const handleStorageChange = (e) => {
+      console.log('Storage change detected:', e.detail);
+      loadUser();
+    };
+    window.addEventListener('userStorageChange', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', loadUser);
+      window.removeEventListener('userStorageChange', handleStorageChange);
+    };
+  }, [refresh]);
 
   return (
       <Router>
@@ -76,9 +105,6 @@ function App() {
               {/* Medical Report Routes */}
               <Route path="/medical-reports" element={<ProtectedRoute><MedicalReportList /></ProtectedRoute>} />
 
-              {/* Referral Routes */}
-              <Route path="/referrals" element={<ProtectedRoute><ReferralList /></ProtectedRoute>} />
-
               {/* Lab Test Routes */}
               <Route path="/lab-tests" element={<ProtectedRoute><LabTestList /></ProtectedRoute>} />
               <Route path="/lab-tests/results" element={<ProtectedRoute><LabResultForm /></ProtectedRoute>} />
@@ -91,7 +117,8 @@ function App() {
               <Route path="/billing" element={<ProtectedRoute><BillingList /></ProtectedRoute>} />
               <Route path="/billing/:id" element={<ProtectedRoute><BillingDetail /></ProtectedRoute>} />
 
-
+              {/* Referral Routes */}
+              <Route path="/referrals" element={<ProtectedRoute><ReferralList /></ProtectedRoute>} />
             </Routes>
           </main>
         </div>
