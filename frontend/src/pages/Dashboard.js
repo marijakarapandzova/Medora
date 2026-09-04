@@ -5,7 +5,6 @@ import { doctorService } from '../services/doctorService';
 import { appointmentService } from '../services/appointmentService';
 import { labService } from '../services/labService';
 import { billingService } from '../services/billingService';
-import { medicalRecordService } from '../services/medicalRecordService';
 import Loading from '../components/Loading';
 
 function Dashboard() {
@@ -18,7 +17,6 @@ function Dashboard() {
   const [doctorInfo, setDoctorInfo] = useState(null);
   const [pendingLabTests, setPendingLabTests] = useState([]);
   const [billings, setBillings] = useState([]);
-  const [medicalRecords, setMedicalRecords] = useState([]);
   const [patientBillings, setPatientBillings] = useState([]);
   const [loading, setLoading] = useState(true);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -32,16 +30,11 @@ function Dashboard() {
       try {
         if (isPatient) {
           // For patients, fetch their own appointments, medical records, and billing
-          const [appointmentsRes, medicalRes, billingRes] = await Promise.all([
+          const [appointmentsRes, billingRes] = await Promise.all([
             appointmentService.getAppointmentsForPatient(user.patientId),
-            medicalRecordService.getMedicalRecordByPatientId(user.patientId),
             billingService.getBillingHistoryForPatient(user.patientId)
           ]);
           setUserAppointments(appointmentsRes.data || []);
-          // Handle medical records - could be single object or array
-          const medicalData = medicalRes.data;
-          const medicalArray = Array.isArray(medicalData) ? medicalData : (medicalData ? [medicalData] : []);
-          setMedicalRecords(medicalArray);
           setPatientBillings(billingRes.data || []);
         } else if (isDoctor) {
           // For doctors, fetch their own appointments and full doctor information
@@ -81,7 +74,7 @@ function Dashboard() {
     };
 
     fetchStats();
-  }, [user.userId, isPatient, isDoctor, isLabTechnician]);
+  }, []);
 
   if (loading) return <Loading />;
 

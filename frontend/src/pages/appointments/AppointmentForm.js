@@ -25,23 +25,22 @@ function AppointmentForm() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const fetchData = async () => {
+      try {
+        if (!isPatient) {
+          const patientsRes = await patientService.getAllPatients();
+          setPatients(patientsRes.data);
+        }
 
-  const fetchData = async () => {
-    try {
-      // For patients, we don't need to fetch all patients
-      if (!isPatient) {
-        const patientsRes = await patientService.getAllPatients();
-        setPatients(patientsRes.data);
+        const doctorsRes = await doctorService.getAllDoctors();
+        setDoctors(doctorsRes.data);
+      } catch (err) {
+        setError('Failed to fetch doctors');
       }
+    };
 
-      const doctorsRes = await doctorService.getAllDoctors();
-      setDoctors(doctorsRes.data);
-    } catch (err) {
-      setError('Failed to fetch doctors');
-    }
-  };
+    fetchData();
+  }, [isPatient]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

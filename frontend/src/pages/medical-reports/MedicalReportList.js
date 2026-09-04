@@ -3,7 +3,6 @@ import { medicalReportService } from '../../services/medicalReportService';
 import { patientService } from '../../services/patientService';
 import { doctorService } from '../../services/doctorService';
 import { medicalRecordService } from '../../services/medicalRecordService';
-import { medicalItemsService } from '../../services/medicalItemsService';
 import ErrorAlert from '../../components/ErrorAlert';
 import SuccessAlert from '../../components/SuccessAlert';
 
@@ -17,11 +16,6 @@ function MedicalReportList() {
   const [searchedPatient, setSearchedPatient] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const [availableDiagnoses, setAvailableDiagnoses] = useState([]);
-  const [availablePrescriptions, setAvailablePrescriptions] = useState([]);
-  const [availableAllergies, setAvailableAllergies] = useState([]);
-  const [availableSymptoms, setAvailableSymptoms] = useState([]);
 
   const [selectedDiagnosisIds, setSelectedDiagnosisIds] = useState(new Set());
   const [selectedPrescriptionIds, setSelectedPrescriptionIds] = useState(new Set());
@@ -69,43 +63,9 @@ function MedicalReportList() {
 
       const medicalRecordRes = await medicalRecordService.getMedicalRecordByPatientId(patientRes.data.patientId);
       const medicalRecordId = medicalRecordRes.data.recordId;
-      const patientId = patientRes.data.patientId;
 
       const reportsRes = await medicalReportService.getReportsForMedicalRecord(medicalRecordId);
       setReports(Array.isArray(reportsRes.data) ? reportsRes.data : [reportsRes.data]);
-
-      // Fetch available medical items
-      try {
-        const diagnosesRes = await medicalItemsService.getDiagnosesForPatient(patientId);
-        setAvailableDiagnoses(diagnosesRes.data || []);
-      } catch (err) {
-        console.error('Error loading diagnoses:', err);
-        setAvailableDiagnoses([]);
-      }
-
-      try {
-        const prescriptionsRes = await medicalItemsService.getPrescriptionsForMedicalRecord(medicalRecordId);
-        setAvailablePrescriptions(prescriptionsRes.data || []);
-      } catch (err) {
-        console.error('Error loading prescriptions:', err);
-        setAvailablePrescriptions([]);
-      }
-
-      try {
-        const allergiesRes = await medicalItemsService.getAllergiesForMedicalRecord(medicalRecordId);
-        setAvailableAllergies(allergiesRes.data || []);
-      } catch (err) {
-        console.error('Error loading allergies:', err);
-        setAvailableAllergies([]);
-      }
-
-      try {
-        const symptomsRes = await medicalItemsService.getSymptomsForMedicalRecord(medicalRecordId);
-        setAvailableSymptoms(symptomsRes.data || []);
-      } catch (err) {
-        console.error('Error loading symptoms:', err);
-        setAvailableSymptoms([]);
-      }
 
       setSelectedReport(null);
       setSelectedDiagnosisIds(new Set());
@@ -116,10 +76,6 @@ function MedicalReportList() {
       setError('Patient not found or no reports available');
       setReports([]);
       setSearchedPatient(null);
-      setAvailableDiagnoses([]);
-      setAvailablePrescriptions([]);
-      setAvailableAllergies([]);
-      setAvailableSymptoms([]);
     } finally {
       setLoading(false);
     }
@@ -174,54 +130,6 @@ function MedicalReportList() {
       ...prev,
       [name]: value
     }));
-  };
-
-  const toggleDiagnosisSelection = (diagnosisId) => {
-    setSelectedDiagnosisIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(diagnosisId)) {
-        newSet.delete(diagnosisId);
-      } else {
-        newSet.add(diagnosisId);
-      }
-      return newSet;
-    });
-  };
-
-  const togglePrescriptionSelection = (prescriptionId) => {
-    setSelectedPrescriptionIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(prescriptionId)) {
-        newSet.delete(prescriptionId);
-      } else {
-        newSet.add(prescriptionId);
-      }
-      return newSet;
-    });
-  };
-
-  const toggleAllergySelection = (allergyId) => {
-    setSelectedAllergyIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(allergyId)) {
-        newSet.delete(allergyId);
-      } else {
-        newSet.add(allergyId);
-      }
-      return newSet;
-    });
-  };
-
-  const toggleSymptomSelection = (symptomId) => {
-    setSelectedSymptomIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(symptomId)) {
-        newSet.delete(symptomId);
-      } else {
-        newSet.add(symptomId);
-      }
-      return newSet;
-    });
   };
 
   return (

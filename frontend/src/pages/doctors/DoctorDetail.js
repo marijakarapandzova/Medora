@@ -23,21 +23,21 @@ function DoctorDetail() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const fetchDoctor = async () => {
+      try {
+        setLoading(true);
+        const response = await doctorService.getDoctorById(id);
+        setDoctor(response.data);
+      } catch (err) {
+        setError('Failed to fetch doctor details');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchDoctor();
   }, [id]);
-
-  const fetchDoctor = async () => {
-    try {
-      setLoading(true);
-      const response = await doctorService.getDoctorById(id);
-      setDoctor(response.data);
-    } catch (err) {
-      setError('Failed to fetch doctor details');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) return <Loading />;
 

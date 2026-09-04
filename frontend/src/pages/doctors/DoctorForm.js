@@ -21,28 +21,28 @@ function DoctorForm() {
 
   useEffect(() => {
     if (id) {
+      const fetchDoctor = async () => {
+        try {
+          setLoading(true);
+          const response = await doctorService.getDoctorById(id);
+          setFormData({
+            firstName: response.data.firstName,
+            lastName: response.data.lastName,
+            emailAddress: response.data.emailAddress,
+            levelId: response.data.level?.levelId || '',
+            specializationId: response.data.specialization?.specializationId || '',
+            departmentId: response.data.department?.departmentId || '',
+          });
+        } catch (err) {
+          setError('Failed to fetch doctor');
+        } finally {
+          setLoading(false);
+        }
+      };
+
       fetchDoctor();
     }
   }, [id]);
-
-  const fetchDoctor = async () => {
-    try {
-      setLoading(true);
-      const response = await doctorService.getDoctorById(id);
-      setFormData({
-        firstName: response.data.firstName,
-        lastName: response.data.lastName,
-        emailAddress: response.data.emailAddress,
-        levelId: response.data.level?.levelId || '',
-        specializationId: response.data.specialization?.specializationId || '',
-        departmentId: response.data.department?.departmentId || '',
-      });
-    } catch (err) {
-      setError('Failed to fetch doctor');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;

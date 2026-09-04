@@ -64,65 +64,65 @@ function App() {
   }, [refresh]);
 
   return (
-      <Router>
-        <div className="min-h-screen bg-gray-50">
-          {user && <Navbar />}
-          <main className={user ? "container mx-auto px-4 py-8" : ""}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
+    <Router>
+      <div className="min-h-screen bg-gray-50">
+        {user && <Navbar />}
+        <main className={user ? "container mx-auto px-4 py-8" : ""}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
 
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
 
-              {/* Patient Routes */}
-              <Route path="/patients" element={<ProtectedRoute><PatientList /></ProtectedRoute>} />
-              <Route path="/patients/new" element={<ProtectedRoute><PatientForm /></ProtectedRoute>} />
-              <Route path="/patients/:id" element={<ProtectedRoute><PatientDetail /></ProtectedRoute>} />
-              <Route path="/patients/:id/edit" element={<ProtectedRoute><PatientForm /></ProtectedRoute>} />
+            {/* Patient Routes */}
+            <Route path="/patients" element={<ProtectedRoute><PatientList /></ProtectedRoute>} />
+            <Route path="/patients/new" element={<ProtectedRoute><PatientForm /></ProtectedRoute>} />
+            <Route path="/patients/:id" element={<ProtectedRoute><PatientDetail /></ProtectedRoute>} />
+            <Route path="/patients/:id/edit" element={<ProtectedRoute><PatientForm /></ProtectedRoute>} />
 
-              {/* Doctor Routes */}
-              <Route path="/doctors" element={<ProtectedRoute><DoctorList /></ProtectedRoute>} />
-              <Route path="/doctors/new" element={<ProtectedRoute><DoctorForm /></ProtectedRoute>} />
-              <Route path="/doctors/:id" element={<ProtectedRoute><DoctorDetail /></ProtectedRoute>} />
-              <Route path="/doctors/:id/edit" element={<ProtectedRoute><DoctorForm /></ProtectedRoute>} />
+            {/* Doctor Routes */}
+            <Route path="/doctors" element={<ProtectedRoute><DoctorList /></ProtectedRoute>} />
+            <Route path="/doctors/new" element={<ProtectedRoute><DoctorForm /></ProtectedRoute>} />
+            <Route path="/doctors/:id" element={<ProtectedRoute><DoctorDetail /></ProtectedRoute>} />
+            <Route path="/doctors/:id/edit" element={<ProtectedRoute><DoctorForm /></ProtectedRoute>} />
 
-              {/* Department Routes */}
-              <Route path="/departments" element={<ProtectedRoute><DepartmentList /></ProtectedRoute>} />
-              <Route path="/departments/:departmentId" element={<ProtectedRoute><DepartmentDetail /></ProtectedRoute>} />
-              <Route path="/departments/:departmentId/doctors" element={<ProtectedRoute><DoctorsByDepartment /></ProtectedRoute>} />
+            {/* Department Routes */}
+            <Route path="/departments" element={<ProtectedRoute><DepartmentList /></ProtectedRoute>} />
+            <Route path="/departments/:departmentId" element={<ProtectedRoute><DepartmentDetail /></ProtectedRoute>} />
+            <Route path="/departments/:departmentId/doctors" element={<ProtectedRoute><DoctorsByDepartment /></ProtectedRoute>} />
 
-              {/* Appointment Routes */}
-              <Route path="/appointments" element={<ProtectedRoute><AppointmentList /></ProtectedRoute>} />
-              <Route path="/appointments/new" element={<ProtectedRoute><AppointmentForm /></ProtectedRoute>} />
+            {/* Appointment Routes */}
+            <Route path="/appointments" element={<ProtectedRoute><AppointmentList /></ProtectedRoute>} />
+            <Route path="/appointments/new" element={<ProtectedRoute><AppointmentForm /></ProtectedRoute>} />
 
-              {/* Medical Record Routes */}
-              <Route path="/medical-records" element={<ProtectedRoute><MedicalRecordList /></ProtectedRoute>} />
-              <Route path="/medical-records/:id" element={<ProtectedRoute><MedicalRecordDetail /></ProtectedRoute>} />
+            {/* Medical Record Routes */}
+            <Route path="/medical-records" element={<ProtectedRoute><MedicalRecordList /></ProtectedRoute>} />
+            <Route path="/medical-records/:id" element={<ProtectedRoute><MedicalRecordDetail /></ProtectedRoute>} />
 
-              {/* Medical Report Routes */}
-              <Route path="/medical-reports" element={<ProtectedRoute><MedicalReportList /></ProtectedRoute>} />
+            {/* Medical Report Routes */}
+            <Route path="/medical-reports" element={<ProtectedRoute><MedicalReportList /></ProtectedRoute>} />
 
-              {/* Lab Test Routes */}
-              <Route path="/lab-tests" element={<ProtectedRoute><LabTestList /></ProtectedRoute>} />
-              <Route path="/lab-tests/results" element={<ProtectedRoute><LabResultForm /></ProtectedRoute>} />
+            {/* Lab Test Routes */}
+            <Route path="/lab-tests" element={<ProtectedRoute><LabTestList /></ProtectedRoute>} />
+            <Route path="/lab-tests/results" element={<ProtectedRoute><LabResultForm /></ProtectedRoute>} />
 
-              {/* Procedure Routes */}
-              <Route path="/procedures" element={<ProtectedRoute><ProcedureList /></ProtectedRoute>} />
-              <Route path="/procedures/results" element={<ProtectedRoute><ProcedureResultForm /></ProtectedRoute>} />
+            {/* Procedure Routes */}
+            <Route path="/procedures" element={<ProtectedRoute><ProcedureList /></ProtectedRoute>} />
+            <Route path="/procedures/results" element={<ProtectedRoute><ProcedureResultForm /></ProtectedRoute>} />
 
-              {/* Billing Routes */}
-              <Route path="/billing" element={<ProtectedRoute><BillingList /></ProtectedRoute>} />
-              <Route path="/billing/:id" element={<ProtectedRoute><BillingDetail /></ProtectedRoute>} />
+            {/* Billing Routes */}
+            <Route path="/billing" element={<ProtectedRoute><BillingList /></ProtectedRoute>} />
+            <Route path="/billing/:id" element={<ProtectedRoute><BillingDetail /></ProtectedRoute>} />
 
-              {/* Referral Routes */}
-              <Route path="/referrals" element={<ProtectedRoute><ReferralList /></ProtectedRoute>} />
-            </Routes>
-          </main>
-        </div>
-      </Router>
+            {/* Referral Routes */}
+            <Route path="/referrals" element={<ProtectedRoute><ReferralList /></ProtectedRoute>} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   );
 }
 

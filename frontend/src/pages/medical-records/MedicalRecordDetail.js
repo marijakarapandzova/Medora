@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { medicalRecordService } from '../../services/medicalRecordService';
 import { doctorService } from '../../services/doctorService';
@@ -76,47 +76,7 @@ function MedicalRecordDetail() {
   const [labResults, setLabResults] = useState([]);
   const [procedureResults, setProcedureResults] = useState([]);
 
-  useEffect(() => {
-    fetchRecord();
-    fetchDoctors();
-    fetchDropdownOptions();
-  }, [id]);
-
-  const fetchDropdownOptions = async () => {
-    try {
-      console.log('Fetching dropdown options...');
-      const diagnosesRes = await apiClient.get('/medical-records/dropdown/diagnoses');
-      console.log('Diagnoses:', diagnosesRes.data);
-
-      const symptomsRes = await apiClient.get('/medical-records/dropdown/symptoms');
-      console.log('Symptoms:', symptomsRes.data);
-
-      const allergiesRes = await apiClient.get('/medical-records/dropdown/allergies');
-      console.log('Allergies:', allergiesRes.data);
-
-      const prescriptionsRes = await apiClient.get('/medical-records/dropdown/prescriptions');
-      console.log('Prescriptions:', prescriptionsRes.data);
-
-      const testsRes = await labService.getAllLabTests();
-      console.log('Lab Tests:', testsRes.data);
-
-      const proceduresRes = await procedureService.getAllProcedures();
-      console.log('Procedures:', proceduresRes.data);
-
-      setDiagnoses(diagnosesRes.data || []);
-      setSymptoms(symptomsRes.data || []);
-      setAllergies(allergiesRes.data || []);
-      setPrescriptions(prescriptionsRes.data || []);
-      setLabTests(testsRes.data || []);
-      setProcedures(proceduresRes.data || []);
-      console.log('Dropdown options set successfully');
-    } catch (err) {
-      console.error('Error fetching dropdown options:', err);
-      setError('Failed to load dropdown options: ' + (err.response?.data?.error || err.message));
-    }
-  };
-
-  const fetchRecord = async () => {
+  const fetchRecord = useCallback(async () => {
     try {
       setLoading(true);
       const response = await medicalRecordService.getMedicalRecordByPatientId(id);
@@ -145,21 +105,61 @@ function MedicalRecordDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const fetchDoctors = async () => {
-    try {
-      if (!isDoctor) {
-        const response = await doctorService.getAllDoctors();
-        setDoctors(response.data);
-        if (response.data.length > 0 && !selectedDoctorId) {
-          setSelectedDoctorId(response.data[0].doctorId);
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        if (!isDoctor) {
+          const response = await doctorService.getAllDoctors();
+          setDoctors(response.data);
+          if (response.data.length > 0 && !selectedDoctorId) {
+            setSelectedDoctorId(response.data[0].doctorId);
+          }
         }
+      } catch (err) {
+        console.error('Failed to fetch doctors', err);
       }
-    } catch (err) {
-      console.error('Failed to fetch doctors', err);
-    }
-  };
+    };
+
+    const fetchDropdownOptions = async () => {
+      try {
+        console.log('Fetching dropdown options...');
+        const diagnosesRes = await apiClient.get('/medical-records/dropdown/diagnoses');
+        console.log('Diagnoses:', diagnosesRes.data);
+
+        const symptomsRes = await apiClient.get('/medical-records/dropdown/symptoms');
+        console.log('Symptoms:', symptomsRes.data);
+
+        const allergiesRes = await apiClient.get('/medical-records/dropdown/allergies');
+        console.log('Allergies:', allergiesRes.data);
+
+        const prescriptionsRes = await apiClient.get('/medical-records/dropdown/prescriptions');
+        console.log('Prescriptions:', prescriptionsRes.data);
+
+        const testsRes = await labService.getAllLabTests();
+        console.log('Lab Tests:', testsRes.data);
+
+        const proceduresRes = await procedureService.getAllProcedures();
+        console.log('Procedures:', proceduresRes.data);
+
+        setDiagnoses(diagnosesRes.data || []);
+        setSymptoms(symptomsRes.data || []);
+        setAllergies(allergiesRes.data || []);
+        setPrescriptions(prescriptionsRes.data || []);
+        setLabTests(testsRes.data || []);
+        setProcedures(proceduresRes.data || []);
+        console.log('Dropdown options set successfully');
+      } catch (err) {
+        console.error('Error fetching dropdown options:', err);
+        setError('Failed to load dropdown options: ' + (err.response?.data?.error || err.message));
+      }
+    };
+
+    fetchRecord();
+    fetchDoctors();
+    fetchDropdownOptions();
+  }, [id, isDoctor, fetchRecord, selectedDoctorId]);
 
   const handleAddDiagnosis = async (e) => {
     e.preventDefault();
@@ -856,7 +856,7 @@ function MedicalRecordDetail() {
 
             try {
               setLoading(true);
-              const doctorId = localStorage.getItem('doctorId') || 1;
+              const doctorId = user.doctorId || 1;
 
               const request = {
                 patientId: record.patientId,
@@ -963,7 +963,7 @@ function MedicalRecordDetail() {
 
             try {
               setLoading(true);
-              const doctorId = localStorage.getItem('doctorId') || 1;
+              const doctorId = user.doctorId || 1;
 
               const request = {
                 patientId: record.patientId,

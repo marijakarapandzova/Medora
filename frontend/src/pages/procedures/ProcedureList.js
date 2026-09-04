@@ -5,6 +5,7 @@ import { medicalRecordService } from '../../services/medicalRecordService';
 import ErrorAlert from '../../components/ErrorAlert';
 
 function ProcedureList() {
+  const [user, setUser] = useState({});
   const [patient, setPatient] = useState(null);
   const [embg, setEmbg] = useState('');
   const [searched, setSearched] = useState(false);
@@ -21,6 +22,41 @@ function ProcedureList() {
     procedureDate: new Date().toISOString().split('T')[0],
     notes: '',
   });
+
+  // Load user from localStorage and listen for changes
+  useEffect(() => {
+    const loadUser = () => {
+      const userStr = localStorage.getItem('user');
+      console.log('[ProcedureList] Loading user from localStorage:', userStr);
+      if (userStr) {
+        try {
+          const parsedUser = JSON.parse(userStr);
+          console.log('[ProcedureList] Parsed user:', parsedUser);
+          setUser(parsedUser);
+        } catch (err) {
+          console.error('Failed to parse user:', err);
+          setUser({});
+        }
+      } else {
+        console.log('[ProcedureList] No user in localStorage');
+        setUser({});
+      }
+    };
+
+    console.log('[ProcedureList] useEffect running - loading user');
+    loadUser();
+
+    // Listen for storage changes (other tabs/windows)
+    window.addEventListener('storage', loadUser);
+
+    // Listen for custom event (same tab changes)
+    window.addEventListener('userStorageChange', loadUser);
+
+    return () => {
+      window.removeEventListener('storage', loadUser);
+      window.removeEventListener('userStorageChange', loadUser);
+    };
+  }, []);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -96,8 +132,8 @@ function ProcedureList() {
     try {
       setLoading(true);
 
-      // Get doctor ID from localStorage (set during login)
-      const doctorId = localStorage.getItem('doctorId') || 1;
+      // Get doctor ID from logged-in user
+      const doctorId = user.doctorId;
 
       const request = {
         procedureId: parseInt(requestData.procedureId),
@@ -107,7 +143,8 @@ function ProcedureList() {
         notes: requestData.notes,
       };
 
-      console.log('Sending request:', request);
+      console.log('User object:', user);
+      console.log('Sending procedure request with doctorId:', doctorId, 'Full request:', request);
       await procedureService.recordProcedure(request);
 
       // Refresh the performed procedures
@@ -312,7 +349,7 @@ function ProcedureList() {
           )}
 
           {/* No procedures message */}
-          {!performedProcedures || (performedProcedures.length === 0 && !procedureResults?.length) && (
+          {(!performedProcedures || performedProcedures.length === 0) && !procedureResults?.length && (
             <div className="bg-blue-50 rounded-lg p-6 text-center">
               <p className="text-gray-600">No procedures for this patient</p>
             </div>

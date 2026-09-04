@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { procedureService } from '../../services/procedureService';
 import { patientService } from '../../services/patientService';

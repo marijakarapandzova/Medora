@@ -18,10 +18,7 @@ function DepartmentDetail() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchDepartmentAndDoctors();
-  }, [departmentId]);
-
-  const fetchDepartmentAndDoctors = async () => {
+    const fetchDepartmentAndDoctors = async () => {
     try {
       setLoading(true);
 
@@ -38,7 +35,10 @@ function DepartmentDetail() {
     } finally {
       setLoading(false);
     }
-  };
+    };
+
+    fetchDepartmentAndDoctors();
+  }, [departmentId]);
 
   if (loading) return <Loading />;
 

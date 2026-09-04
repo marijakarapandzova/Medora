@@ -17,6 +17,10 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * are handled in individual service methods, not here.
  */
 @Component
+
+
+
+
 public class AuthorizationInterceptor implements HandlerInterceptor {
 
     private final SecurityUtil securityUtil;
