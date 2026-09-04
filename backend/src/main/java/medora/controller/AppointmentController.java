@@ -34,6 +34,7 @@ public class AppointmentController {
     public AppointmentController(AppointmentService appointmentService, SecurityUtil securityUtil) {
         this.appointmentService = appointmentService;
         this.securityUtil = securityUtil;
+
     }
 
     @PostMapping
@@ -118,16 +119,26 @@ public class AppointmentController {
                         .body(Map.of("error", "Unauthorized"));
             }
 
-            // Patients, BILLING_ADMIN, and LAB_TECHNICIAN cannot view all appointments
-            if (role.equals("PATIENT") || role.equals("BILLING_ADMIN") || role.equals("LAB_TECHNICIAN")) {
+            // BILLING_ADMIN and LAB_TECHNICIAN cannot view appointments
+            if (role.equals("BILLING_ADMIN") || role.equals("LAB_TECHNICIAN")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "You do not have permission to view appointments"));
             }
 
             List<Appointment> appointments;
 
+            // Patients can only view their own appointments
+            if (role.equals("PATIENT")) {
+                Long patientIdFromToken = securityUtil.getPatientIdFromRequest(httpRequest);
+                if (patientIdFromToken == null || patientIdFromToken <= 0) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "Patient ID not found in token"));
+                }
+                logger.info("Fetching appointments for patient ID: {}", patientIdFromToken);
+                appointments = appointmentService.getAppointmentsForPatient(patientIdFromToken);
+            }
             // Doctors can only view their own appointments
-            if (role.equals("DOCTOR")) {
+            else if (role.equals("DOCTOR")) {
                 Long doctorIdFromToken = securityUtil.getDoctorIdFromRequest(httpRequest);
                 if (doctorIdFromToken == null || doctorIdFromToken <= 0) {
                     return ResponseEntity.status(HttpStatus.FORBIDDEN)

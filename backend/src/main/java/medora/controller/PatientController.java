@@ -181,8 +181,8 @@ public class PatientController {
                         .body(Map.of("error", "Unauthorized"));
             }
 
-            // BILLING_ADMIN and LAB_TECHNICIAN cannot view patients
-            if (role.equals("BILLING_ADMIN") || role.equals("LAB_TECHNICIAN")) {
+            // LAB_TECHNICIAN cannot view patients, but BILLING_ADMIN needs to see patient list for billing record filters
+            if (role.equals("LAB_TECHNICIAN")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "You do not have permission to view patients"));
             }

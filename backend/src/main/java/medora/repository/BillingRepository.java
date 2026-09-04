@@ -54,7 +54,7 @@ public interface BillingRepository extends JpaRepository<Billing, Long> {
     """, nativeQuery = true)
     BigDecimal calculateTotalCostForMedicalRecord(@Param("recordId") Long recordId);
 
-   //Get billing records by payment status
+    // Helper: Get billing records by payment status
     @Query("""
         SELECT b FROM Billing b
         WHERE b.paymentStatus = :status
@@ -62,7 +62,7 @@ public interface BillingRepository extends JpaRepository<Billing, Long> {
     """)
     List<Billing> findByPaymentStatus(@Param("status") String status);
 
-    // Get unpaid bills for a patient
+    // Helper: Get unpaid bills for a patient
     @Query("""
         SELECT b FROM Billing b
         WHERE b.medicalRecord.patient.patientId = :patientId
@@ -71,7 +71,7 @@ public interface BillingRepository extends JpaRepository<Billing, Long> {
     """)
     List<Billing> findUnpaidBillsForPatient(@Param("patientId") Long patientId);
 
-    //Get all bills for a patient sorted by date
+    // Helper: Get all bills for a patient sorted by date
     @Query("""
         SELECT b FROM Billing b
         WHERE b.medicalRecord.patient.patientId = :patientId
@@ -125,4 +125,10 @@ public interface BillingRepository extends JpaRepository<Billing, Long> {
         WHERE blt.bill_id = :billId
     """, nativeQuery = true)
     java.util.List<Object[]> findLabTestsForBilling(@Param("billId") Long billId);
+
+    // Cleanup: Delete test records
+    @Transactional
+    @Modifying
+    @Query("DELETE FROM Billing b WHERE b.billId > :maxId")
+    long deleteByBillIdGreaterThan(@Param("maxId") Long maxId);
 }

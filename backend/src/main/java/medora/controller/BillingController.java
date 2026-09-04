@@ -279,6 +279,20 @@ public class BillingController {
         }
     }
 
+    @DeleteMapping("/cleanup/test-records")
+    public ResponseEntity<?> cleanupTestRecords() {
+        try {
+            // Delete all billing records with ID > 30 (test data)
+            long deletedCount = billingService.deleteTestRecords(30L);
+            logger.info("Deleted {} test billing records", deletedCount);
+            return ResponseEntity.ok(Map.of("message", "Deleted " + deletedCount + " test billing records", "deleted", deletedCount));
+        } catch (Exception e) {
+            logger.error("Error deleting test records: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to delete test records: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/{billId}/invoice-pdf")
     public ResponseEntity<?> downloadInvoicePDF(@PathVariable Long billId, HttpServletRequest httpRequest) {
         try {

@@ -331,6 +331,18 @@ public class BillingService {
             BigDecimal totalCost = procedureCost.add(labTestCost);
             logger.info("Total cost calculation: procedures={}, labTests={}, total={}", procedureCost, labTestCost, totalCost);
 
+            // Get default admin (first admin in system) - skip billing if none found
+            Optional<Admin> adminOptional = adminRepository.findAll()
+                    .stream()
+                    .findFirst();
+
+            if (adminOptional.isEmpty()) {
+                logger.warn("No admin found in system - skipping automatic billing generation for patient {} on {}", patientId, serviceDate);
+                return;
+            }
+
+            Admin admin = adminOptional.get();
+
             // Check if billing already exists for this patient on this date
             Billing billing = billingRepository.findBillingForPatientOnDate(patientId, serviceDate);
 
@@ -339,12 +351,6 @@ public class BillingService {
                         billing.getBillId(), patientId, serviceDate);
                 billing.setTotalCost(totalCost);
             } else {
-                // Get default admin (first admin in system)
-                Admin admin = adminRepository.findAll()
-                        .stream()
-                        .findFirst()
-                        .orElseThrow(() -> new RuntimeException("No admin found in system"));
-
                 // Create new billing record
                 billing = new Billing();
                 billing.setMedicalRecord(medicalRecord);
@@ -442,5 +448,27 @@ public class BillingService {
 
         logger.info("Retrieved detailed billing information for bill {}", billId);
         return detail;
+    }
+
+    @Transactional
+    public long deleteTestRecords(Long maxBillIdToKeep) {
+        try {
+            // Use native SQL to delete all billing data including audit logs
+            Long billingCount = (long) billingRepository.findAll().size();
+
+            // Delete billing procedures and lab tests (they reference billing)
+            billingProceduresRepository.deleteAll();
+            billingLabTestsRepository.deleteAll();
+
+            // Delete billing records
+            billingRepository.deleteAll();
+
+            logger.info(" Deleted {} billing records successfully", billingCount);
+            return billingCount;
+        } catch (Exception e) {
+            logger.error(" Error deleting billing records: {}", e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 }

@@ -19,6 +19,7 @@ function BillingList() {
   const [statusFilter, setStatusFilter] = useState('');
   const [patientFilter, setPatientFilter] = useState('');
   const [patients, setPatients] = useState([]);
+  const [pageSize] = useState(50); // Limit to 50 records per page
 
   useEffect(() => {
     const fetchBillings = async () => {
@@ -68,7 +69,7 @@ function BillingList() {
       return false;
     }
     return true;
-  });
+  }).slice(0, pageSize); // Limit to first 50 records for performance
 
   const pendingBillings = billings.filter(b => b.paymentStatus === 'PENDING');
 
