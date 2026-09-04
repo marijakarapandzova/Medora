@@ -220,7 +220,7 @@ public class BillingService {
             labTestCost = BigDecimal.ZERO;
         }
 
-        logger.info("Total billing cost for bill ID {}: procedures={}, lab tests={}",
+        logger.info("Total billing cost for bill ID {}: procedures={}, lab tests={}", 
                 billId, procedureCost, labTestCost);
         return procedureCost.add(labTestCost);
     }
@@ -243,7 +243,7 @@ public class BillingService {
         // Note: You'll need to inject ProcedureRepository to get the procedure
         // This is a placeholder - adjust based on your actual Procedure entity
         logger.info("Adding procedure {} to billing record {}", procedureId, billId);
-
+        
         return null; // Will be implemented with ProcedureRepository injection
     }
 
@@ -463,10 +463,10 @@ public class BillingService {
             // Delete billing records
             billingRepository.deleteAll();
 
-            logger.info(" Deleted {} billing records successfully", billingCount);
+            logger.info("✅ Deleted {} billing records successfully", billingCount);
             return billingCount;
         } catch (Exception e) {
-            logger.error(" Error deleting billing records: {}", e.getMessage());
+            logger.error("❌ Error deleting billing records: {}", e.getMessage());
             e.printStackTrace();
             throw e;
         }

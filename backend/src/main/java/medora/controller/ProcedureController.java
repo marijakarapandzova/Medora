@@ -333,12 +333,11 @@ public class ProcedureController {
 
     private Map<String, Object> convertResultToDTO(ProcedureResults result) {
         return Map.of(
-                "resultId", result.getResultId(),
-                "procedureId", result.getProcedure().getProcedureId(),
-                "procedureType", result.getProcedure().getProcedureType(),
-                "resultDescription", result.getResultDescription() != null ? result.getResultDescription() : "",
-                "resultDate", result.getResultDate()
+            "resultId", result.getResultId(),
+            "procedureId", result.getProcedure().getProcedureId(),
+            "procedureType", result.getProcedure().getProcedureType(),
+            "resultDescription", result.getResultDescription() != null ? result.getResultDescription() : "",
+            "resultDate", result.getResultDate()
         );
     }
 }
-

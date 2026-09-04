@@ -31,14 +31,19 @@ public class DepartmentService {
         this.doctorRepository = doctorRepository;
     }
 
-
+    /**
+     * UC023 – View Departments
+     * Get all departments
+     */
     @Transactional(readOnly = true)
     public List<Departments> getAllDepartments() {
         logger.info("Fetching all departments");
         return departmentRepository.findAll();
     }
 
-
+    /**
+     * Get department by ID
+     */
     @Transactional(readOnly = true)
     public Optional<Departments> getDepartmentById(Long departmentId) {
         if (departmentId == null || departmentId <= 0) {
@@ -48,7 +53,9 @@ public class DepartmentService {
         return departmentRepository.findById(departmentId);
     }
 
-
+    /**
+     * Get department by name
+     */
     @Transactional(readOnly = true)
     public Optional<Departments> getDepartmentByName(String departmentName) {
         if (departmentName == null || departmentName.isBlank()) {
@@ -58,7 +65,10 @@ public class DepartmentService {
         return departmentRepository.findByDepartmentName(departmentName);
     }
 
-
+    /**
+     * UC024 – View Doctors by Department
+     * Get all doctors in a specific department
+     */
     @Transactional(readOnly = true)
     public List<Doctors> getDoctorsByDepartment(Long departmentId) {
         if (departmentId == null || departmentId <= 0) {
@@ -74,7 +84,9 @@ public class DepartmentService {
         return doctorRepository.findByDepartmentDepartmentId(departmentId);
     }
 
-
+    /**
+     * Create a new department
+     */
     @Transactional
     public Departments createDepartment(Departments department) {
         if (department == null || department.getDepartmentName() == null ||
@@ -86,7 +98,9 @@ public class DepartmentService {
         return departmentRepository.save(department);
     }
 
-
+    /**
+     * Update department
+     */
     @Transactional
     public Departments updateDepartment(Long departmentId, Departments departmentDetails) {
         if (departmentId == null || departmentId <= 0) {

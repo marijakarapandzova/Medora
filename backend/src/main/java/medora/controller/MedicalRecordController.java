@@ -1,8 +1,8 @@
 package medora.controller;
 
-import medora.dto.AllergyDTO;
 import medora.dto.ComprehensiveMedicalRecordDTO;
 import medora.dto.MedicalRecordDTO;
+import medora.dto.AllergyDTO;
 import medora.dto.SymptomDTO;
 import medora.models.domain.*;
 import medora.repository.*;

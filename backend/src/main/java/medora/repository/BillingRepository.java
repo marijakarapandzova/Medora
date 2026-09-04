@@ -115,7 +115,7 @@ public interface BillingRepository extends JpaRepository<Billing, Long> {
         JOIN procedures p ON bp.procedure_id = p.procedure_id
         WHERE bp.bill_id = :billId
     """, nativeQuery = true)
-    java.util.List<Object[]> findProceduresForBilling(@Param("billId") Long billId);
+    List<Object[]> findProceduresForBilling(@Param("billId") Long billId);
 
     // UC020 – Get lab tests for a billing record
     @Query(value = """
@@ -124,7 +124,7 @@ public interface BillingRepository extends JpaRepository<Billing, Long> {
         JOIN lab_tests l ON blt.test_id = l.test_id
         WHERE blt.bill_id = :billId
     """, nativeQuery = true)
-    java.util.List<Object[]> findLabTestsForBilling(@Param("billId") Long billId);
+    List<Object[]> findLabTestsForBilling(@Param("billId") Long billId);
 
     // Cleanup: Delete test records
     @Transactional

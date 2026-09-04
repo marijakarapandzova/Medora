@@ -1,10 +1,11 @@
 package medora.config;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import medora.util.SecurityUtil;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Request interceptor that enforces JWT token validation and role-based access control.
@@ -17,10 +18,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * are handled in individual service methods, not here.
  */
 @Component
-
-
-
-
 public class AuthorizationInterceptor implements HandlerInterceptor {
 
     private final SecurityUtil securityUtil;

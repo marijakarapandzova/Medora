@@ -1,11 +1,6 @@
 package medora.models.domain;
 
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.validation.constraints.Pattern;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,26 +14,23 @@ public class LabTechnician {
     @Column(name = "technician_id")
     private Long technicianId;
 
-    @Column(name = "username", nullable = false, unique = true)
-    private String username;
+    @OneToOne(optional = false)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
 
-    @Column(name = "name", nullable = false)
-    private String name;
-
-    @Column(name = "lastname", nullable = false)
-    private String lastname;
-
-    @Pattern(regexp = ".*@labmedora.*")
-    @Column(name = "email", nullable = false, unique = true)
-    private String email;
+    @Column(name = "certification")
+    private String certification;
 
     public LabTechnician() {}
 
-    public LabTechnician(Long technicianId, String username, String name, String lastname, String email) {
+    public LabTechnician(Long technicianId, User user, String certification) {
         this.technicianId = technicianId;
-        this.username = username;
-        this.name = name;
-        this.lastname = lastname;
-        this.email = email;
+        this.user = user;
+        this.certification = certification;
+    }
+
+    public LabTechnician(Long technicianId, User user) {
+        this.technicianId = technicianId;
+        this.user = user;
     }
 }

@@ -206,8 +206,8 @@ public class PatientController {
 
     @PutMapping("/{patientId}")
     public ResponseEntity<?> updatePatient(@PathVariable Long patientId,
-                                           @RequestBody CreatePatientRequest request,
-                                           HttpServletRequest httpRequest) {
+                                          @RequestBody CreatePatientRequest request,
+                                          HttpServletRequest httpRequest) {
         try {
             String role = securityUtil.getRoleFromRequest(httpRequest);
             if (role == null) {

@@ -105,7 +105,9 @@ public class ReferralService {
         return savedReferral;
     }
 
-
+    /**
+     * Get referral by ID
+     */
     @Transactional(readOnly = true)
     public Optional<Referrals> getReferralById(Long referralId) {
         if (referralId == null || referralId <= 0) {
@@ -115,7 +117,9 @@ public class ReferralService {
         return referralRepository.findById(referralId);
     }
 
-
+    /**
+     * Get referrals for a patient
+     */
     @Transactional(readOnly = true)
     public List<Referrals> getReferralsForPatient(Long patientId) {
         if (patientId == null || patientId <= 0) {
@@ -130,7 +134,9 @@ public class ReferralService {
         return referralRepository.findReferralsForPatient(patientId);
     }
 
-
+    /**
+     * Get referrals made by a doctor
+     */
     @Transactional(readOnly = true)
     public List<Referrals> getReferralsByFromDoctor(Long doctorId) {
         if (doctorId == null || doctorId <= 0) {
@@ -145,6 +151,9 @@ public class ReferralService {
         return referralRepository.findByFromDoctorDoctorId(doctorId);
     }
 
+    /**
+     * Get referrals received by a doctor
+     */
     @Transactional(readOnly = true)
     public List<Referrals> getReferralsToDoctor(Long doctorId) {
         if (doctorId == null || doctorId <= 0) {
@@ -159,7 +168,10 @@ public class ReferralService {
         return referralRepository.findIncomingReferralsForDoctor(doctorId);
     }
 
-
+    /**
+     * Create appointment for referral in a separate transaction
+     * Using REQUIRES_NEW ensures appointment creation failures don't rollback the referral
+     */
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     private void createAppointmentForReferral(Long patientId, Long doctorId, LocalDate appointmentDate, LocalTime appointmentTime) {
         try {

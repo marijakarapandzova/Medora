@@ -161,8 +161,8 @@ public class DepartmentController {
      */
     @PutMapping("/{departmentId}")
     public ResponseEntity<?> updateDepartment(@PathVariable Long departmentId,
-                                              @RequestBody Map<String, String> request,
-                                              HttpServletRequest httpRequest) {
+                                             @RequestBody Map<String, String> request,
+                                             HttpServletRequest httpRequest) {
         try {
             String role = securityUtil.getRoleFromRequest(httpRequest);
             if (role == null) {

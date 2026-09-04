@@ -3,6 +3,7 @@ package medora.models.domain;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import medora.models.enums.PaymentStatus;
@@ -37,8 +38,8 @@ public class Billing {
     @JoinColumn(name = "record_id", nullable = false)
     private MedicalRecord medicalRecord;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "admin_id", nullable = false)
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "admin_id", nullable = true)
     private Admin admin;
 
     public Billing() {}

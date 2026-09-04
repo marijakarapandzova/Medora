@@ -211,8 +211,8 @@ public class DoctorController {
 
     @PutMapping("/{doctorId}")
     public ResponseEntity<?> updateDoctor(@PathVariable Long doctorId,
-                                          @RequestBody CreateDoctorRequest request,
-                                          HttpServletRequest httpRequest) {
+                                         @RequestBody CreateDoctorRequest request,
+                                         HttpServletRequest httpRequest) {
         try {
             String role = securityUtil.getRoleFromRequest(httpRequest);
             if (role == null) {

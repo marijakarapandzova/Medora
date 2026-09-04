@@ -124,7 +124,7 @@ public class LabController {
 
     @PutMapping("/{testId}")
     public ResponseEntity<?> updateLabTest(@PathVariable Long testId,
-                                           @RequestBody CreateLabTestRequest request) {
+                                          @RequestBody CreateLabTestRequest request) {
         try {
             logger.info("Updating lab test with ID: {}", testId);
             LabTests updatedTest = labService.updateLabTest(

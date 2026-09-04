@@ -20,8 +20,8 @@ public class BillingDetailDTO {
     public BillingDetailDTO() {}
 
     public BillingDetailDTO(Long billId, Long patientId, String patientName, String patientEmbg, String patientPhone,
-                            BigDecimal totalCost, String paymentStatus, LocalDate paymentDate,
-                            LocalDate billDate, List<BillingItemDTO> procedures, List<BillingItemDTO> labTests) {
+                           BigDecimal totalCost, String paymentStatus, LocalDate paymentDate,
+                           LocalDate billDate, List<BillingItemDTO> procedures, List<BillingItemDTO> labTests) {
         this.billId = billId;
         this.patientId = patientId;
         this.patientName = patientName;

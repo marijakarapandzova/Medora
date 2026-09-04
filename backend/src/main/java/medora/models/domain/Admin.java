@@ -1,11 +1,6 @@
 package medora.models.domain;
 
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.validation.constraints.Pattern;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,26 +14,23 @@ public class Admin {
     @Column(name = "admin_id")
     private Long adminId;
 
-    @Column(name = "username", nullable = false, unique = true)
-    private String username;
+    @OneToOne(optional = false)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
 
-    @Column(name = "name", nullable = false)
-    private String name;
-
-    @Column(name = "lastname", nullable = false)
-    private String lastname;
-
-    @Pattern(regexp = ".*@adminmedora.*")
-    @Column(name = "email", nullable = false, unique = true)
-    private String email;
+    @Column(name = "permissions")
+    private String permissions;
 
     public Admin() {}
 
-    public Admin(Long adminId, String username, String name, String lastname, String email) {
+    public Admin(Long adminId, User user, String permissions) {
         this.adminId = adminId;
-        this.username = username;
-        this.name = name;
-        this.lastname = lastname;
-        this.email = email;
+        this.user = user;
+        this.permissions = permissions;
+    }
+
+    public Admin(Long adminId, User user) {
+        this.adminId = adminId;
+        this.user = user;
     }
 }

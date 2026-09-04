@@ -29,4 +29,14 @@ public interface ProcedureResultRepository extends JpaRepository<ProcedureResult
         ORDER BY pr.resultDate DESC
     """)
     List<ProcedureResults> findLatestResultsByProcedure(@Param("procedureId") Long procedureId);
+
+    @Query("""
+        SELECT pr FROM ProcedureResults pr
+        WHERE pr IN (
+            SELECT mrpr.procedureResult FROM MedicalRecordProcedureResults mrpr
+            WHERE mrpr.medicalRecord.recordId = :recordId
+        )
+        AND pr.procedure.procedureId = :procedureId
+    """)
+    List<ProcedureResults> findByMedicalRecordAndProcedure(@Param("recordId") Long recordId, @Param("procedureId") Long procedureId);
 }

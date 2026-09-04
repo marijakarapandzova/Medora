@@ -243,8 +243,8 @@ public class BillingController {
 
     @PatchMapping("/{billId}/payment-status")
     public ResponseEntity<?> updatePaymentStatus(@PathVariable Long billId,
-                                                 @RequestBody UpdateBillingRequest request,
-                                                 HttpServletRequest httpRequest) {
+                                                @RequestBody UpdateBillingRequest request,
+                                                HttpServletRequest httpRequest) {
         try {
             String role = securityUtil.getRoleFromRequest(httpRequest);
             if (role == null) {
@@ -343,7 +343,7 @@ public class BillingController {
         String patientName = "";
         if (billing.getMedicalRecord() != null && billing.getMedicalRecord().getPatient() != null) {
             patientName = billing.getMedicalRecord().getPatient().getFirstName() + " " +
-                    billing.getMedicalRecord().getPatient().getLastName();
+                         billing.getMedicalRecord().getPatient().getLastName();
         }
         return new BillingDTO(
                 billing.getBillId(),

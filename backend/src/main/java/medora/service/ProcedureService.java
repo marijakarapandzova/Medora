@@ -296,19 +296,34 @@ public class ProcedureService {
         Procedure procedure = procedureRepository.findById(procedureId)
                 .orElseThrow(() -> new RuntimeException("Procedure not found"));
 
-        ProcedureResults result = new ProcedureResults();
-        result.setProcedure(procedure);
-        result.setResultDescription(resultDescription);
-        result.setResultDate(resultDate);
+        // Check if result already exists for this medical record and procedure
+        List<ProcedureResults> existingResults = procedureResultRepository.findByMedicalRecordAndProcedure(medicalRecordId, procedureId);
 
-        ProcedureResults savedResult = procedureResultRepository.save(result);
+        ProcedureResults result;
+        if (!existingResults.isEmpty()) {
+            // Update existing result
+            result = existingResults.get(0);
+            result.setResultDescription(resultDescription);
+            result.setResultDate(resultDate);
+            ProcedureResults savedResult = procedureResultRepository.save(result);
+            logger.info("Updated procedure result {} for medical record {}", savedResult.getResultId(), medicalRecordId);
+            return savedResult;
+        } else {
+            // Create new result
+            result = new ProcedureResults();
+            result.setProcedure(procedure);
+            result.setResultDescription(resultDescription);
+            result.setResultDate(resultDate);
 
-        // Link to medical record
-        MedicalRecordProcedureResults link = new MedicalRecordProcedureResults(record, savedResult);
-        medicalRecordProcedureResultRepository.save(link);
+            // Save result first to generate ID
+            ProcedureResults savedResult = procedureResultRepository.save(result);
 
-        logger.info("Stored procedure result {} for medical record {}", savedResult.getResultId(), medicalRecordId);
-        return savedResult;
+            // Then link to medical record
+            MedicalRecordProcedureResults link = new MedicalRecordProcedureResults(record, savedResult);
+            medicalRecordProcedureResultRepository.save(link);
+            logger.info("Created new procedure result {} for medical record {}", savedResult.getResultId(), medicalRecordId);
+            return savedResult;
+        }
     }
 
     @Transactional(readOnly = true)

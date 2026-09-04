@@ -1,7 +1,7 @@
 package medora.controller;
 
-import medora.dto.CreateDiagnosisRequest;
 import medora.dto.DiagnosisDTO;
+import medora.dto.CreateDiagnosisRequest;
 import medora.models.domain.Diagnosis;
 import medora.service.DiagnosisService;
 import org.slf4j.Logger;

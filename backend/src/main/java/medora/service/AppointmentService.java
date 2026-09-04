@@ -180,7 +180,9 @@ public class AppointmentService {
         return appointmentRepository.save(appointment);
     }
 
-
+    /**
+     * Mark appointment as completed
+     */
     @Transactional
     public Appointment completeAppointment(Long appointmentId) {
 
@@ -207,6 +209,9 @@ public class AppointmentService {
         return appointmentRepository.save(appointment);
     }
 
+    /**
+     * Get appointment by ID
+     */
     @Transactional(readOnly = true)
     public Optional<Appointment> getAppointmentById(Long appointmentId) {
 
@@ -219,7 +224,9 @@ public class AppointmentService {
         return appointmentRepository.findById(appointmentId);
     }
 
-
+    /**
+     * Get appointments for patient
+     */
     @Transactional(readOnly = true)
     public List<Appointment> getAppointmentsForPatient(Long patientId) {
 
@@ -241,7 +248,9 @@ public class AppointmentService {
                 );
     }
 
-
+    /**
+     * Get appointments for doctor
+     */
     @Transactional(readOnly = true)
     public List<Appointment> getAppointmentsForDoctor(Long doctorId) {
 
@@ -263,7 +272,9 @@ public class AppointmentService {
                 );
     }
 
-
+    /**
+     * Get doctor's schedule for a specific date
+     */
     @Transactional(readOnly = true)
     public List<Appointment> getDoctorSchedule(Long doctorId,
                                                LocalDate appointmentDate) {
@@ -289,7 +300,9 @@ public class AppointmentService {
                 );
     }
 
-
+    /**
+     * Get all appointments
+     */
     @Transactional(readOnly = true)
     public List<Appointment> getAllAppointments() {
 
@@ -298,7 +311,10 @@ public class AppointmentService {
         return appointmentRepository.findAll();
     }
 
-
+    /**
+     * Find next available appointment slot for a doctor on a given date
+     * Returns a LocalTime for the next available slot, or null if no slots available
+     */
     public LocalTime findNextAvailableSlot(Long doctorId, LocalDate appointmentDate) {
         LocalTime[] timeSlots = {
                 LocalTime.of(9, 0),

@@ -9,7 +9,8 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateDoctorRequest {
+public class
+CreateDoctorRequest {
     private String firstName;
     private String lastName;
     private String emailAddress;

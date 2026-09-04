@@ -1,11 +1,11 @@
 package medora.service;
 
 import medora.models.domain.Diagnosis;
-import medora.models.domain.Doctors;
 import medora.models.domain.Patient;
+import medora.models.domain.Doctors;
 import medora.repository.DiagnosisRepository;
-import medora.repository.DoctorRepository;
 import medora.repository.PatientRepository;
+import medora.repository.DoctorRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -68,6 +68,9 @@ public class DiagnosisService {
         return diagnosisRepository.save(diagnosis);
     }
 
+    /**
+     * Get diagnosis by ID
+     */
     @Transactional(readOnly = true)
     public Optional<Diagnosis> getDiagnosisById(Long diagnosisId) {
 
@@ -77,7 +80,9 @@ public class DiagnosisService {
         return diagnosisRepository.findById(diagnosisId);
     }
 
-
+    /**
+     * Get diagnoses for patient
+     */
     @Transactional(readOnly = true)
     public List<Diagnosis> getDiagnosesForPatient(Long patientId) {
 
@@ -90,7 +95,9 @@ public class DiagnosisService {
         return diagnosisRepository.findByPatientPatientId(patientId);
     }
 
-
+    /**
+     * Get diagnoses by doctor
+     */
     @Transactional(readOnly = true)
     public List<Diagnosis> getDiagnosesByDoctor(Long doctorId) {
 
@@ -104,23 +111,4 @@ public class DiagnosisService {
     }
 
 
-    @Transactional
-    public Diagnosis updateDiagnosis(Long diagnosisId,
-                                     String diagnosisName,
-                                     String description) {
-
-        if (diagnosisId == null || diagnosisId <= 0)
-            throw new IllegalArgumentException("Diagnosis ID must be valid");
-
-        Diagnosis diagnosis = diagnosisRepository.findById(diagnosisId)
-                .orElseThrow(() -> new RuntimeException("Diagnosis not found"));
-
-        if (diagnosisName != null && !diagnosisName.isBlank())
-            diagnosis.setName(diagnosisName);
-
-        if (description != null)
-            diagnosis.setDescription(description);
-
-        return diagnosisRepository.save(diagnosis);
-    }
 }

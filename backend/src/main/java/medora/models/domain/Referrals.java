@@ -49,13 +49,13 @@ public class Referrals {
     public Referrals() {}
 
     public Referrals(Long referralId,
-                     String reason,
-                     LocalDate referralDate,
-                     LocalDate appointmentDate,
-                     LocalTime appointmentTime,
-                     MedicalRecord medicalRecord,
-                     Doctors fromDoctor,
-                     Doctors toDoctor) {
+                    String reason,
+                    LocalDate referralDate,
+                    LocalDate appointmentDate,
+                    LocalTime appointmentTime,
+                    MedicalRecord medicalRecord,
+                    Doctors fromDoctor,
+                    Doctors toDoctor) {
 
         this.referralId = referralId;
         this.reason = reason;

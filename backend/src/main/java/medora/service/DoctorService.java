@@ -1,9 +1,9 @@
 package medora.service;
 
-import medora.models.domain.Departments;
 import medora.models.domain.Doctors;
-import medora.repository.DepartmentRepository;
+import medora.models.domain.Departments;
 import medora.repository.DoctorRepository;
+import medora.repository.DepartmentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -45,7 +45,9 @@ public class DoctorService {
                 .orElseThrow(() -> new RuntimeException("Doctor not found with ID: " + doctorId));
     }
 
-
+    /**
+     * Get doctor by email
+     */
     @Transactional(readOnly = true)
     public Doctors getDoctorByEmail(String emailAddress) {
         if (emailAddress == null || emailAddress.isBlank()) {
@@ -58,7 +60,9 @@ public class DoctorService {
                 .orElseThrow(() -> new RuntimeException("Doctor not found with email: " + emailAddress));
     }
 
-
+    /**
+     * UC024 – View Doctors by Department
+     */
     @Transactional(readOnly = true)
     public List<Doctors> getDoctorsByDepartment(Long departmentId) {
         if (departmentId == null || departmentId <= 0) {
@@ -73,7 +77,9 @@ public class DoctorService {
         return doctorRepository.findByDepartmentDepartmentId(departmentId);
     }
 
-
+    /**
+     * Get doctors by specialization
+     */
     @Transactional(readOnly = true)
     public List<Doctors> getDoctorsBySpecialization(Long specializationId) {
         if (specializationId == null || specializationId <= 0) {
@@ -85,7 +91,9 @@ public class DoctorService {
         return doctorRepository.findBySpecializationSpecializationId(specializationId);
     }
 
-
+    /**
+     * Get doctors by level
+     */
     @Transactional(readOnly = true)
     public List<Doctors> getDoctorsByLevel(Long levelId) {
         if (levelId == null || levelId <= 0) {
@@ -97,14 +105,18 @@ public class DoctorService {
         return doctorRepository.findByLevelLevelId(levelId);
     }
 
-
+    /**
+     * Get all doctors
+     */
     @Transactional(readOnly = true)
     public List<Doctors> getAllDoctors() {
         logger.info("Fetching all doctors");
         return doctorRepository.findAll();
     }
 
-
+    /**
+     * Create doctor
+     */
     @Transactional
     public Doctors createDoctor(Doctors doctor) {
 
@@ -145,7 +157,9 @@ public class DoctorService {
         return doctorRepository.save(doctor);
     }
 
-
+    /**
+     * Update doctor
+     */
     @Transactional
     public Doctors updateDoctor(Long doctorId, Doctors doctorDetails) {
 

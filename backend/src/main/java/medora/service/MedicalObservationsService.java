@@ -1,8 +1,16 @@
 package medora.service;
 
 
-import medora.models.domain.*;
-import medora.repository.*;
+import medora.models.domain.MedicalRecordSymptoms;
+import medora.models.domain.MedicalRecordAllergies;
+import medora.models.domain.Symptoms;
+import medora.models.domain.Allergies;
+import medora.models.domain.MedicalRecord;
+import medora.repository.SymptomRepository;
+import medora.repository.AllergyRepository;
+import medora.repository.MedicalRecordSymptomRepository;
+import medora.repository.MedicalRecordAllergyRepository;
+import medora.repository.MedicalRecordRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -60,7 +68,7 @@ public class MedicalObservationsService {
         Symptoms symptom = symptomRepository.findById(symptomId)
                 .orElseThrow(() -> new RuntimeException("Symptom not found with ID: " + symptomId));
 
-
+        // Check if symptom is already recorded
         if (medicalRecordSymptomRepository.existsByMedicalRecordRecordIdAndSymptomSymptomId(
                 medicalRecordId, symptomId)) {
             throw new RuntimeException("Symptom already recorded for this medical record");
@@ -92,7 +100,7 @@ public class MedicalObservationsService {
     }
 
    
-    // For ALLERGIES
+    // ================= ALLERGIES OPERATIONS =================
 
     /**
      * UC011 – Record Allergies
@@ -127,7 +135,9 @@ public class MedicalObservationsService {
         return medicalRecordAllergyRepository.save(recordAllergy);
     }
 
-
+    /**
+     * Get all allergies for a patient's medical record
+     */
     @Transactional(readOnly = true)
     public List<MedicalRecordAllergies> getAllergiesForMedicalRecord(Long medicalRecordId) {
         if (medicalRecordId == null || medicalRecordId <= 0) {
@@ -142,14 +152,20 @@ public class MedicalObservationsService {
         return medicalRecordAllergyRepository.findByMedicalRecordRecordId(medicalRecordId);
     }
 
+    
 
+    /**
+     * Get all available symptoms
+     */
     @Transactional(readOnly = true)
     public List<Symptoms> getAllSymptoms() {
         logger.info("Fetching all symptoms");
         return symptomRepository.findAll();
     }
 
-
+    /**
+     * Get all available allergies
+     */
     @Transactional(readOnly = true)
     public List<Allergies> getAllAllergies() {
         logger.info("Fetching all allergies");

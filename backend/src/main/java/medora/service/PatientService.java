@@ -1,10 +1,10 @@
 package medora.service;
 
 
-import medora.models.domain.MedicalRecord;
 import medora.models.domain.Patient;
-import medora.repository.MedicalRecordRepository;
+import medora.models.domain.MedicalRecord;
 import medora.repository.PatientRepository;
+import medora.repository.MedicalRecordRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

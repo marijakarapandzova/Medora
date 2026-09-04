@@ -222,27 +222,8 @@ public class LabService {
 
     @Transactional(readOnly = true)
     public List<PerformedLabTests> getPendingLabTests() {
-        // Get all performed tests and filter to only those without results
-        List<PerformedLabTests> allTests = performedLabTestRepository.findAll();
-
-        return allTests.stream()
-                .filter(test -> {
-                    // Get the patient's medical record
-                    Optional<MedicalRecord> recordOpt = medicalRecordRepository.findByPatientPatientId(test.getPatient().getPatientId());
-                    if (recordOpt.isEmpty()) {
-                        return true; // No medical record, so no results possible
-                    }
-
-                    MedicalRecord record = recordOpt.get();
-                    // Check if this test has results in this medical record
-                    List<MedicalRecordLabResults> results = medicalRecordLabResultRepository
-                            .findByMedicalRecordRecordId(record.getRecordId());
-
-                    // Filter to only results for this specific test
-                    return results.stream()
-                            .noneMatch(r -> r.getLabResult().getLabTest().getTestId().equals(test.getLabTest().getTestId()));
-                })
-                .toList();
+        logger.info("Fetching all pending lab test requests");
+        return performedLabTestRepository.findAll();
     }
 
     @Transactional(readOnly = true)

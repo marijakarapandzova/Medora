@@ -29,7 +29,7 @@ public class JwtUtil {
     @PostConstruct
     public void init() {
         logger.info("JwtUtil initialized - JWT Secret length: {}, Expiration: {}ms",
-                jwtSecret != null ? jwtSecret.length() : 0, jwtExpirationMs);
+            jwtSecret != null ? jwtSecret.length() : 0, jwtExpirationMs);
         if (jwtSecret == null || jwtSecret.isEmpty()) {
             logger.error("⚠️ JWT_SECRET is not set or empty!");
         } else {
@@ -122,7 +122,7 @@ public class JwtUtil {
             }
 
             logger.info("🔐 Validating token - secret hash: {}, secret length: {}, token length: {}",
-                    jwtSecret.hashCode(), jwtSecret.length(), token.length());
+                jwtSecret.hashCode(), jwtSecret.length(), token.length());
 
             Jwts.parser()
                     .verifyWith(getSigningKey())

@@ -19,6 +19,7 @@ public class MedicalRecordSymptoms {
 
     @Id
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "symptom_id")
     private Symptoms symptom;
 
     @Column(name = "severity")

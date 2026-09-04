@@ -47,12 +47,12 @@ public class PerformedLabTests {
     }
 
     public PerformedLabTests(Long performedTestId,
-                             LabTests labTest,
-                             Patient patient,
-                             Doctors doctor,
-                             LabTechnician technician,
-                             LocalDate testDate,
-                             String notes) {
+                            LabTests labTest,
+                            Patient patient,
+                            Doctors doctor,
+                            LabTechnician technician,
+                            LocalDate testDate,
+                            String notes) {
         this.performedTestId = performedTestId;
         this.labTest = labTest;
         this.patient = patient;

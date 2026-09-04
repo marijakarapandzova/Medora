@@ -1,7 +1,7 @@
 package medora.controller;
 
-import medora.dto.CreatePrescriptionRequest;
 import medora.dto.PrescriptionDTO;
+import medora.dto.CreatePrescriptionRequest;
 import medora.models.domain.PrescriptionMedicalRecord;
 import medora.service.PrescriptionService;
 import org.slf4j.Logger;
