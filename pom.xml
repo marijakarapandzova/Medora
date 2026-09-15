@@ -125,7 +125,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>medora.Medora5Application</mainClass>
+                    <mainClass>medora.MedoraApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>
