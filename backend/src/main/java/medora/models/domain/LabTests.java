@@ -16,8 +16,6 @@ import java.math.BigDecimal;
 public class LabTests {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "test_seq")
-    @SequenceGenerator(name = "test_seq", sequenceName = "test_id_seq", allocationSize = 1)
     @Column(name = "test_id")
     private Long testId;
 

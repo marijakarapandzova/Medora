@@ -14,8 +14,6 @@ import java.time.LocalDate;
 public class LabResults {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "result_seq")
-    @SequenceGenerator(name = "result_seq", sequenceName = "result_id_seq", allocationSize = 1)
     @Column(name = "result_id")
     private Long resultId;
 

@@ -14,23 +14,30 @@ public class LabTechnician {
     @Column(name = "technician_id")
     private Long technicianId;
 
+    @Column(name = "username", nullable = false, unique = true)
+    private String username;
+
+    @Column(name = "name", nullable = false)
+    private String name;
+
+    @Column(name = "lastname", nullable = false)
+    private String lastname;
+
+    @Column(name = "email", nullable = false, unique = true)
+    private String email;
+
     @OneToOne(optional = false)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    @Column(name = "certification")
-    private String certification;
-
     public LabTechnician() {}
 
-    public LabTechnician(Long technicianId, User user, String certification) {
+    public LabTechnician(Long technicianId, String username, String name, String lastname, String email, User user) {
         this.technicianId = technicianId;
-        this.user = user;
-        this.certification = certification;
-    }
-
-    public LabTechnician(Long technicianId, User user) {
-        this.technicianId = technicianId;
+        this.username = username;
+        this.name = name;
+        this.lastname = lastname;
+        this.email = email;
         this.user = user;
     }
 }

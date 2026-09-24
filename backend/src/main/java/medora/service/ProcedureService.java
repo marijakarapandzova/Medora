@@ -26,7 +26,6 @@ public class ProcedureService {
     private final MedicalRecordRepository medicalRecordRepository;
     private final MedicalRecordProcedureRepository medicalRecordProcedureRepository;
     private final ProcedureResultRepository procedureResultRepository;
-    private final MedicalRecordProcedureResultRepository medicalRecordProcedureResultRepository;
     private final EntityManager entityManager;
     private final BillingService billingService;
 
@@ -38,7 +37,6 @@ public class ProcedureService {
                             MedicalRecordRepository medicalRecordRepository,
                             MedicalRecordProcedureRepository medicalRecordProcedureRepository,
                             ProcedureResultRepository procedureResultRepository,
-                            MedicalRecordProcedureResultRepository medicalRecordProcedureResultRepository,
                             EntityManager entityManager,
                             BillingService billingService) {
 
@@ -50,7 +48,6 @@ public class ProcedureService {
         this.medicalRecordRepository = medicalRecordRepository;
         this.medicalRecordProcedureRepository = medicalRecordProcedureRepository;
         this.procedureResultRepository = procedureResultRepository;
-        this.medicalRecordProcedureResultRepository = medicalRecordProcedureResultRepository;
         this.entityManager = entityManager;
         this.billingService = billingService;
     }
@@ -86,6 +83,7 @@ public class ProcedureService {
                 .orElseThrow(() -> new RuntimeException("Procedure not found"));
 
         PerformedProcedures performed = new PerformedProcedures();
+        performed.setPerformedId(performedProcedureRepository.findMaxPerformedId() + 1);
         performed.setProcedure(procedure);
         performed.setDoctor(doctor);
         performed.setPatient(patient);
@@ -137,6 +135,7 @@ public class ProcedureService {
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
 
         PerformedProcedures performed = new PerformedProcedures();
+        performed.setPerformedId(performedProcedureRepository.findMaxPerformedId() + 1);
         performed.setProcedure(procedure);
         performed.setDoctor(doctor);
         performed.setPatient(patient);
@@ -311,16 +310,25 @@ public class ProcedureService {
         } else {
             // Create new result
             result = new ProcedureResults();
+            Long nextResultId = procedureResultRepository.findMaxResultId() + 1;
+            result.setResultId(nextResultId);
             result.setProcedure(procedure);
             result.setResultDescription(resultDescription);
             result.setResultDate(resultDate);
 
-            // Save result first to generate ID
+            // Save result
             ProcedureResults savedResult = procedureResultRepository.save(result);
 
-            // Then link to medical record
-            MedicalRecordProcedureResults link = new MedicalRecordProcedureResults(record, savedResult);
-            medicalRecordProcedureResultRepository.save(link);
+            // Ensure the catalog procedure is linked to this medical record, so the
+            // result becomes visible there (procedure_results only carries a
+            // procedure_id, not a record_id — the schema has no direct link between
+            // a medical record and a specific result, only between a medical record
+            // and the catalog procedure, matching the pattern validated for UseCase09).
+            boolean alreadyLinked = medicalRecordProcedureRepository
+                    .existsByMedicalRecordRecordIdAndProcedureProcedureId(medicalRecordId, procedureId);
+            if (!alreadyLinked) {
+                medicalRecordProcedureRepository.linkProcedure(medicalRecordId, procedureId);
+            }
             logger.info("Created new procedure result {} for medical record {}", savedResult.getResultId(), medicalRecordId);
             return savedResult;
         }

@@ -11,8 +11,6 @@ import lombok.Setter;
 public class Diagnosis {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "diagnosis_seq")
-    @SequenceGenerator(name = "diagnosis_seq", sequenceName = "diagnosis_id_seq", allocationSize = 1)
     @Column(name = "diagnosis_id")
     private Long diagnosisId;
 

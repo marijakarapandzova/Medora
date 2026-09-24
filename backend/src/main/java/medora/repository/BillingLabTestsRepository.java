@@ -18,6 +18,8 @@ public interface BillingLabTestsRepository extends JpaRepository<BillingLabTests
     """)
     List<BillingLabTests> findByBillingBillId(@Param("billId") Long billId);
 
+    boolean existsByBillingBillIdAndLabTestTestId(Long billId, Long testId);
+
     // Calculate total cost of lab tests for a billing record
     @Query("""
         SELECT COALESCE(SUM(blt.labTest.cost), 0) FROM BillingLabTests blt
@@ -25,4 +27,3 @@ public interface BillingLabTestsRepository extends JpaRepository<BillingLabTests
     """)
     BigDecimal calculateTotalCostForBilling(@Param("billId") Long billId);
 }
-

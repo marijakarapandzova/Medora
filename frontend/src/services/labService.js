@@ -51,6 +51,11 @@ const labService = {
     return api.get('/lab-tests/requests/pending');
   },
 
+  // Get all lab technicians (for the technician selection dropdown)
+  getAllLabTechnicians: () => {
+    return api.get('/lab-technicians');
+  },
+
   // Get all submitted lab results (for lab technicians)
   getAllSubmittedLabResults: () => {
     return api.get('/lab-tests/results');

@@ -33,16 +33,6 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
-    // Foreign key to patient (only for PATIENT role)
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "patient_id")
-    private Patient patient;
-
-    // Foreign key to doctor (only for DOCTOR role)
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "doctor_id")
-    private Doctors doctor;
-
     public User() {}
 
     public User(String username, String password, String role, String firstName, String lastName) {

@@ -65,6 +65,7 @@ public class LabService {
             throw new IllegalArgumentException("Invalid cost");
 
         LabTests labTest = new LabTests();
+        labTest.setTestId(labTestRepository.findMaxTestId() + 1);
         labTest.setTestName(testName);
         labTest.setDescription(description);
         labTest.setCost(cost);
@@ -112,6 +113,7 @@ public class LabService {
     public PerformedLabTests requestLabTestForPatient(Long patientId,
                                                       Long doctorId,
                                                       Long testId,
+                                                      Long technicianId,
                                                       LocalDate testDate,
                                                       String notes) {
         if (patientId == null || patientId <= 0)
@@ -123,6 +125,9 @@ public class LabService {
         if (testId == null || testId <= 0)
             throw new IllegalArgumentException("Invalid test ID");
 
+        if (technicianId == null || technicianId <= 0)
+            throw new IllegalArgumentException("Invalid lab technician ID");
+
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
 
@@ -132,10 +137,15 @@ public class LabService {
         LabTests test = labTestRepository.findById(testId)
                 .orElseThrow(() -> new RuntimeException("Lab test not found"));
 
+        LabTechnician technician = labTechnicianRepository.findById(technicianId)
+                .orElseThrow(() -> new RuntimeException("Lab technician not found"));
+
         PerformedLabTests performedTest = new PerformedLabTests();
+        performedTest.setPerformedTestId(performedLabTestRepository.findMaxPerformedTestId() + 1);
         performedTest.setPatient(patient);
         performedTest.setDoctor(doctor);
         performedTest.setLabTest(test);
+        performedTest.setTechnician(technician);
         LocalDate finalTestDate = testDate != null ? testDate : LocalDate.now();
         performedTest.setTestDate(finalTestDate);
         performedTest.setNotes(notes);
@@ -188,6 +198,10 @@ public class LabService {
         if (results == null || results.isBlank())
             throw new IllegalArgumentException("Results required");
 
+        LocalDate finalResultDate = resultDate != null ? resultDate : LocalDate.now();
+        if (finalResultDate.isAfter(LocalDate.now()))
+            throw new IllegalArgumentException("Result date cannot be in the future");
+
         MedicalRecord medicalRecord = medicalRecordRepository.findById(medicalRecordId)
                 .orElseThrow(() -> new RuntimeException("Medical record not found"));
 
@@ -195,8 +209,9 @@ public class LabService {
                 .orElseThrow(() -> new RuntimeException("Lab test not found"));
 
         LabResults labResult = new LabResults();
+        labResult.setResultId(labResultsRepository.findMaxResultId() + 1);
         labResult.setResults(results);
-        labResult.setResultDate(resultDate);
+        labResult.setResultDate(finalResultDate);
         labResult.setLabTest(labTest);
 
         LabResults saved = labResultsRepository.save(labResult);

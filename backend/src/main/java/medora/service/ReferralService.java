@@ -87,13 +87,12 @@ public class ReferralService {
         }
 
         Referrals referral = new Referrals();
+        referral.setReferralId(referralRepository.findMaxReferralId() + 1);
         referral.setMedicalRecord(medicalRecord);
         referral.setFromDoctor(fromDoctor);
         referral.setToDoctor(toDoctor);
         referral.setReason(reason);
         referral.setReferralDate(referralDate);
-        referral.setAppointmentDate(appointmentDate);
-        referral.setAppointmentTime(appointmentTime);
 
         logger.info("Creating referral for medical record ID: {} from doctor ID: {} to doctor ID: {}",
                 medicalRecordId, fromDoctorId, toDoctorId);

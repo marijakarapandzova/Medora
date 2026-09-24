@@ -18,8 +18,6 @@ import java.time.LocalDate;
 public class Billing {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "bill_seq")
-    @SequenceGenerator(name = "bill_seq", sequenceName = "bill_id_seq", allocationSize = 1)
     @Column(name = "bill_id")
     private Long billId;
 
@@ -38,8 +36,8 @@ public class Billing {
     @JoinColumn(name = "record_id", nullable = false)
     private MedicalRecord medicalRecord;
 
-    @ManyToOne(optional = true)
-    @JoinColumn(name = "admin_id", nullable = true)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "admin_id", nullable = false)
     private Admin admin;
 
     public Billing() {}

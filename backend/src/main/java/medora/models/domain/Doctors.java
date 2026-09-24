@@ -11,8 +11,6 @@ import lombok.Setter;
 public class Doctors {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "doctor_seq")
-    @SequenceGenerator(name = "doctor_seq", sequenceName = "doctor_id_seq", allocationSize = 1)
     @Column(name = "doctor_id")
     private Long doctorId;
 
@@ -37,10 +35,15 @@ public class Doctors {
     @JoinColumn(name = "department_id", nullable = false)
     private Departments department;
 
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
+
     public Doctors() {}
 
     public Doctors(Long doctorId, String firstName, String lastName, String emailAddress,
-                  DoctorLevel level, DoctorSpecialization specialization, Departments department) {
+                  DoctorLevel level, DoctorSpecialization specialization, Departments department,
+                  User user) {
         this.doctorId = doctorId;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -48,5 +51,6 @@ public class Doctors {
         this.level = level;
         this.specialization = specialization;
         this.department = department;
+        this.user = user;
     }
 }

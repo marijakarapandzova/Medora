@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -80,7 +82,7 @@ public class ReferralController {
                     request.getAppointmentTime()
             );
 
-            ReferralDTO dto = convertToDTO(referral);
+            ReferralDTO dto = convertToDTO(referral, request.getAppointmentDate(), request.getAppointmentTime());
             return ResponseEntity.status(HttpStatus.CREATED).body(dto);
         } catch (RuntimeException e) {
             logger.error("Error creating referral: {}", e.getMessage());
@@ -212,6 +214,15 @@ public class ReferralController {
     }
 
     private ReferralDTO convertToDTO(Referrals referral) {
+        return convertToDTO(referral, null, null);
+    }
+
+    // Referrals no longer stores its own appointment_date/appointment_time
+    // (that data lives on the automatically-created Appointment row instead,
+    // matching the validated design). The create endpoint passes the values
+    // it just used to create that appointment; other endpoints have no
+    // reliable way to reconstruct them and pass null.
+    private ReferralDTO convertToDTO(Referrals referral, LocalDate appointmentDate, LocalTime appointmentTime) {
         String fromDoctorName = "";
         Long fromDoctorId = null;
         if (referral.getFromDoctor() != null) {
@@ -249,8 +260,8 @@ public class ReferralController {
                 toDoctorName,
                 referral.getReason(),
                 referral.getReferralDate(),
-                referral.getAppointmentDate(),
-                referral.getAppointmentTime()
+                appointmentDate,
+                appointmentTime
         );
     }
 }

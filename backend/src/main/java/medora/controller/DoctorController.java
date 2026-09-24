@@ -62,6 +62,14 @@ public class DoctorController {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Email is required"));
             }
+            if (request.getUsername() == null || request.getUsername().isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Username is required"));
+            }
+            if (request.getPassword() == null || request.getPassword().isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Password is required"));
+            }
 
             Doctors doctor = new Doctors();
             doctor.setFirstName(request.getFirstName());
@@ -80,7 +88,7 @@ public class DoctorController {
             department.setDepartmentId(request.getDepartmentId());
             doctor.setDepartment(department);
 
-            Doctors createdDoctor = doctorService.createDoctor(doctor);
+            Doctors createdDoctor = doctorService.createDoctor(doctor, request.getUsername(), request.getPassword());
             DoctorDTO dto = convertToDTO(createdDoctor);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(dto);

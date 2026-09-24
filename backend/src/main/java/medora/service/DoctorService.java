@@ -2,10 +2,13 @@ package medora.service;
 
 import medora.models.domain.Doctors;
 import medora.models.domain.Departments;
+import medora.models.domain.User;
 import medora.repository.DoctorRepository;
 import medora.repository.DepartmentRepository;
+import medora.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,11 +26,17 @@ public class DoctorService {
 
     private final DoctorRepository doctorRepository;
     private final DepartmentRepository departmentRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public DoctorService(DoctorRepository doctorRepository,
-                         DepartmentRepository departmentRepository) {
+                         DepartmentRepository departmentRepository,
+                         UserRepository userRepository,
+                         PasswordEncoder passwordEncoder) {
         this.doctorRepository = doctorRepository;
         this.departmentRepository = departmentRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -118,7 +127,7 @@ public class DoctorService {
      * Create doctor
      */
     @Transactional
-    public Doctors createDoctor(Doctors doctor) {
+    public Doctors createDoctor(Doctors doctor, String username, String rawPassword) {
 
         if (doctor == null) {
             throw new IllegalArgumentException("Doctor cannot be null");
@@ -140,9 +149,21 @@ public class DoctorService {
             throw new IllegalArgumentException("Doctor department is required");
         }
 
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Username is required");
+        }
+
+        if (rawPassword == null || rawPassword.isBlank()) {
+            throw new IllegalArgumentException("Password is required");
+        }
+
         // uniqueness check
         if (doctorRepository.findByEmailAddress(doctor.getEmailAddress()).isPresent()) {
             throw new RuntimeException("Doctor with this email already exists");
+        }
+
+        if (userRepository.existsByUsername(username)) {
+            throw new RuntimeException("Username already taken");
         }
 
         // validate department exists
@@ -151,6 +172,20 @@ public class DoctorService {
         ).orElseThrow(() -> new RuntimeException("Department not found"));
 
         doctor.setDepartment(department);
+
+        // Create the login account first (user_id is DB-generated), since
+        // Doctors.user_id is a required foreign key pointing to it.
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setRole("DOCTOR");
+        user.setFirstName(doctor.getFirstName());
+        user.setLastName(doctor.getLastName());
+        user.setIsActive(true);
+        User savedUser = userRepository.save(user);
+
+        doctor.setUser(savedUser);
+        doctor.setDoctorId(doctorRepository.findMaxDoctorId() + 1);
 
         logger.info("Creating new doctor: {} {}", doctor.getFirstName(), doctor.getLastName());
 

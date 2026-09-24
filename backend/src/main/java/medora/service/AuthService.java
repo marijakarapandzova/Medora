@@ -2,6 +2,8 @@ package medora.service;
 
 import medora.models.domain.User;
 import medora.repository.UserRepository;
+import medora.repository.DoctorRepository;
+import medora.repository.PatientRepository;
 import medora.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,11 +22,19 @@ public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
+    private final DoctorRepository doctorRepository;
+    private final PatientRepository patientRepository;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UserRepository userRepository, JwtUtil jwtUtil, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository userRepository,
+                       DoctorRepository doctorRepository,
+                       PatientRepository patientRepository,
+                       JwtUtil jwtUtil,
+                       PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.doctorRepository = doctorRepository;
+        this.patientRepository = patientRepository;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
     }
@@ -57,8 +67,15 @@ public class AuthService {
             throw new RuntimeException("Invalid username or password");
         }
 
-        Long patientId = user.getPatient() != null ? user.getPatient().getPatientId() : null;
-        Long doctorId = user.getDoctor() != null ? user.getDoctor().getDoctorId() : null;
+        // Patient/Doctor no longer carry a reverse pointer on User — the FK
+        // lives the other way round (Patient.user_id / Doctors.user_id), so
+        // the linked profile (if any) is looked up by user_id instead.
+        Long patientId = patientRepository.findByUserUserId(user.getUserId())
+                .map(p -> p.getPatientId())
+                .orElse(null);
+        Long doctorId = doctorRepository.findByUserUserId(user.getUserId())
+                .map(d -> d.getDoctorId())
+                .orElse(null);
         String token = jwtUtil.generateTokenWithDoctorId(user.getUsername(), user.getRole(), user.getUserId(), patientId, doctorId);
 
         Map<String, Object> response = new HashMap<>();

@@ -57,6 +57,7 @@ public class PrescriptionService {
                 .orElseThrow(() -> new RuntimeException("Medical record not found"));
 
         Prescriptions prescription = new Prescriptions();
+        prescription.setPrescriptionId(prescriptionRepository.findMaxPrescriptionId() + 1);
         prescription.setMedicationName(medicationName);
 
         Prescriptions savedPrescription = prescriptionRepository.save(prescription);

@@ -9,16 +9,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * MedicalReportService handles medical report operations.
  * UC018 – Create Medical Report
  * OPTIONAL - Use only if needed
+ *
+ * NOTE: This service was refactored to match the final database schema, which
+ * has no report_diagnosis / report_prescription / report_allergy / report_symptom
+ * junction tables. A medical report therefore no longer stores its own
+ * per-report subset of diagnoses/prescriptions/allergies/symptoms — instead,
+ * a "comprehensive report" simply reflects everything already linked to the
+ * report's underlying medical record (via Diagnosis.patient, PrescriptionMedicalRecord,
+ * MedicalRecordAllergies, and MedicalRecordSymptoms), the same way the record's
+ * data is shown elsewhere in the application.
  */
 @Service
 public class MedicalReportService {
@@ -32,13 +39,6 @@ public class MedicalReportService {
     private final PrescriptionMedicalRecordRepository prescriptionMedicalRecordRepository;
     private final MedicalRecordAllergyRepository medicalRecordAllergyRepository;
     private final MedicalRecordSymptomRepository symptomRepository;
-    private final ReportDiagnosisRepository reportDiagnosisRepository;
-    private final ReportPrescriptionRepository reportPrescriptionRepository;
-    private final ReportAllergyRepository reportAllergyRepository;
-    private final ReportSymptomRepository reportSymptomRepository;
-    private final PrescriptionRepository prescriptionRepository;
-    private final AllergyRepository allergyRepository;
-    private final SymptomRepository symptomDbRepository;
 
     public MedicalReportService(MedicalReportRepository medicalReportRepository,
                                 DoctorRepository doctorRepository,
@@ -46,14 +46,7 @@ public class MedicalReportService {
                                 DiagnosisRepository diagnosisRepository,
                                 PrescriptionMedicalRecordRepository prescriptionMedicalRecordRepository,
                                 MedicalRecordAllergyRepository medicalRecordAllergyRepository,
-                                MedicalRecordSymptomRepository symptomRepository,
-                                ReportDiagnosisRepository reportDiagnosisRepository,
-                                ReportPrescriptionRepository reportPrescriptionRepository,
-                                ReportAllergyRepository reportAllergyRepository,
-                                ReportSymptomRepository reportSymptomRepository,
-                                PrescriptionRepository prescriptionRepository,
-                                AllergyRepository allergyRepository,
-                                SymptomRepository symptomDbRepository) {
+                                MedicalRecordSymptomRepository symptomRepository) {
         this.medicalReportRepository = medicalReportRepository;
         this.doctorRepository = doctorRepository;
         this.medicalRecordRepository = medicalRecordRepository;
@@ -61,18 +54,12 @@ public class MedicalReportService {
         this.prescriptionMedicalRecordRepository = prescriptionMedicalRecordRepository;
         this.medicalRecordAllergyRepository = medicalRecordAllergyRepository;
         this.symptomRepository = symptomRepository;
-        this.reportDiagnosisRepository = reportDiagnosisRepository;
-        this.reportPrescriptionRepository = reportPrescriptionRepository;
-        this.reportAllergyRepository = reportAllergyRepository;
-        this.reportSymptomRepository = reportSymptomRepository;
-        this.prescriptionRepository = prescriptionRepository;
-        this.allergyRepository = allergyRepository;
-        this.symptomDbRepository = symptomDbRepository;
     }
 
     /**
      * UC018 – Create Medical Report
-     * Create a medical report describing a patient's visit and condition
+     * Create a medical report describing a patient's visit and condition.
+     * report_id is not database-generated, so the next free ID is computed here.
      */
     @Transactional
     public MedicalReport createMedicalReport(Long doctorId, Long medicalRecordId, String description,
@@ -97,8 +84,8 @@ public class MedicalReportService {
                 .orElseThrow(() -> new RuntimeException("Medical record not found with ID: " + medicalRecordId));
 
         MedicalReport report = new MedicalReport();
-        // Let JPA auto-generate the ID using the sequence
-        report.setReportId(null);
+        Long nextReportId = medicalReportRepository.findMaxReportId() + 1;
+        report.setReportId(nextReportId);
         report.setDoctor(doctor);
         report.setMedicalRecord(medicalRecord);
         report.setDescription(description);
@@ -110,7 +97,12 @@ public class MedicalReportService {
     }
 
     /**
-     * Create a medical report with selected diagnoses, prescriptions, allergies, and symptoms
+     * Create a medical report, optionally validating that the given diagnosis,
+     * prescription, allergy, and symptom IDs are actually linked to the medical
+     * record. The schema has no table to persist a report-specific subset of
+     * these items, so they are only used here as a validation step — the
+     * resulting comprehensive report will reflect everything on the record,
+     * not just the IDs passed in.
      */
     @Transactional
     public MedicalReport createMedicalReportWithSelectedItems(Long doctorId, Long medicalRecordId,
@@ -118,51 +110,57 @@ public class MedicalReportService {
             List<Long> selectedDiagnosisIds, List<Long> selectedPrescriptionIds,
             List<Long> selectedAllergyIds, List<Long> selectedSymptomIds) {
 
-        // Create the base report
-        MedicalReport report = createMedicalReport(doctorId, medicalRecordId, description, reportDate);
+        MedicalRecord medicalRecord = medicalRecordRepository.findById(medicalRecordId)
+                .orElseThrow(() -> new RuntimeException("Medical record not found with ID: " + medicalRecordId));
 
-        // Store selected diagnoses
         if (selectedDiagnosisIds != null) {
             for (Long diagnosisId : selectedDiagnosisIds) {
-                Diagnosis diagnosis = diagnosisRepository.findById(diagnosisId)
+                diagnosisRepository.findById(diagnosisId)
                         .orElseThrow(() -> new RuntimeException("Diagnosis not found with ID: " + diagnosisId));
-                ReportDiagnosis reportDiagnosis = new ReportDiagnosis(report, diagnosis);
-                reportDiagnosisRepository.save(reportDiagnosis);
             }
         }
 
-        // Store selected prescriptions
         if (selectedPrescriptionIds != null) {
             for (Long prescriptionId : selectedPrescriptionIds) {
-                Prescriptions prescription = prescriptionRepository.findById(prescriptionId)
-                        .orElseThrow(() -> new RuntimeException("Prescription not found with ID: " + prescriptionId));
-                ReportPrescription reportPrescription = new ReportPrescription(report, prescription);
-                reportPrescriptionRepository.save(reportPrescription);
+                PrescriptionMedicalRecord pmr = prescriptionMedicalRecordRepository
+                        .findByMedicalRecordAndPrescription(medicalRecordId, prescriptionId);
+                if (pmr == null) {
+                    throw new RuntimeException("Prescription " + prescriptionId
+                            + " is not linked to medical record " + medicalRecordId);
+                }
             }
         }
 
-        // Store selected allergies
         if (selectedAllergyIds != null) {
             for (Long allergyId : selectedAllergyIds) {
-                Allergies allergy = allergyRepository.findById(allergyId)
-                        .orElseThrow(() -> new RuntimeException("Allergy not found with ID: " + allergyId));
-                ReportAllergy reportAllergy = new ReportAllergy(report, allergy);
-                reportAllergyRepository.save(reportAllergy);
+                boolean exists = medicalRecordAllergyRepository
+                        .existsByMedicalRecordRecordIdAndAllergyAllergyId(medicalRecordId, allergyId);
+                if (!exists) {
+                    throw new RuntimeException("Allergy " + allergyId
+                            + " is not linked to medical record " + medicalRecordId);
+                }
             }
         }
 
-        // Store selected symptoms
         if (selectedSymptomIds != null) {
             for (Long symptomId : selectedSymptomIds) {
-                Symptoms symptom = symptomDbRepository.findById(symptomId)
-                        .orElseThrow(() -> new RuntimeException("Symptom not found with ID: " + symptomId));
-                ReportSymptom reportSymptom = new ReportSymptom(report, symptom);
-                reportSymptomRepository.save(reportSymptom);
+                boolean exists = symptomRepository
+                        .existsByMedicalRecordRecordIdAndSymptomSymptomId(medicalRecordId, symptomId);
+                if (!exists) {
+                    throw new RuntimeException("Symptom " + symptomId
+                            + " is not linked to medical record " + medicalRecordId);
+                }
             }
         }
 
-        logger.info("Created medical report with selected items for record ID: {}", medicalRecordId);
-        return report;
+        logger.info("Creating medical report for record ID: {} (validated {} diagnoses, {} prescriptions, "
+                        + "{} allergies, {} symptoms already on the record)", medicalRecordId,
+                selectedDiagnosisIds == null ? 0 : selectedDiagnosisIds.size(),
+                selectedPrescriptionIds == null ? 0 : selectedPrescriptionIds.size(),
+                selectedAllergyIds == null ? 0 : selectedAllergyIds.size(),
+                selectedSymptomIds == null ? 0 : selectedSymptomIds.size());
+
+        return createMedicalReport(doctorId, medicalRecordId, description, reportDate);
     }
 
     /**
@@ -278,17 +276,17 @@ public class MedicalReportService {
     }
 
     /**
-     * Build a comprehensive report DTO with all medical data
+     * Build a comprehensive report DTO with all medical data linked to the
+     * report's underlying medical record (diagnoses by patient, prescriptions,
+     * allergies, and symptoms already recorded on that record).
      */
     private ComprehensiveMedicalReportDTO buildComprehensiveReport(MedicalReport report) {
         Long medicalRecordId = report.getMedicalRecord().getRecordId();
         Patient patient = report.getMedicalRecord().getPatient();
 
-        // Get selected diagnoses from linking table
-        List<ReportDiagnosis> reportDiagnoses = reportDiagnosisRepository.findByReportReportId(report.getReportId());
-        List<Diagnosis> diagnoses = reportDiagnoses.stream()
-                .map(ReportDiagnosis::getDiagnosis)
-                .collect(Collectors.toList());
+        // Diagnoses: diagnosis links directly to a patient in this schema,
+        // there is no separate report-specific selection table.
+        List<Diagnosis> diagnoses = diagnosisRepository.findByPatientPatientId(patient.getPatientId());
 
         List<DiagnosisDTO> diagnosisDTOs = diagnoses.stream()
                 .map(d -> new DiagnosisDTO(
@@ -302,15 +300,9 @@ public class MedicalReportService {
                 ))
                 .collect(Collectors.toList());
 
-        // Get selected prescriptions from linking table
-        List<ReportPrescription> reportPrescriptions = reportPrescriptionRepository.findByReportReportId(report.getReportId());
-        List<PrescriptionMedicalRecord> prescriptions = new java.util.ArrayList<>();
-        for (ReportPrescription rp : reportPrescriptions) {
-            // Find the corresponding PrescriptionMedicalRecord entry
-            List<PrescriptionMedicalRecord> pmr = prescriptionMedicalRecordRepository.findByMedicalRecordRecordIdAndPrescriptionPrescriptionId(
-                    medicalRecordId, rp.getPrescription().getPrescriptionId());
-            prescriptions.addAll(pmr);
-        }
+        // Prescriptions already linked to this medical record.
+        List<PrescriptionMedicalRecord> prescriptions =
+                prescriptionMedicalRecordRepository.findByMedicalRecordRecordId(medicalRecordId);
 
         List<PrescriptionDTO> prescriptionDTOs = prescriptions.stream()
                 .map(p -> new PrescriptionDTO(
@@ -324,15 +316,9 @@ public class MedicalReportService {
                 ))
                 .collect(Collectors.toList());
 
-        // Get selected allergies from linking table
-        List<ReportAllergy> reportAllergies = reportAllergyRepository.findByReportReportId(report.getReportId());
-        List<MedicalRecordAllergies> allergies = new java.util.ArrayList<>();
-        for (ReportAllergy ra : reportAllergies) {
-            // Find the corresponding MedicalRecordAllergies entry
-            List<MedicalRecordAllergies> mra = medicalRecordAllergyRepository.findByMedicalRecordRecordIdAndAllergyAllergyId(
-                    medicalRecordId, ra.getAllergy().getAllergyId());
-            allergies.addAll(mra);
-        }
+        // Allergies already linked to this medical record.
+        List<MedicalRecordAllergies> allergies =
+                medicalRecordAllergyRepository.findByMedicalRecordRecordId(medicalRecordId);
 
         List<AllergyDTO> allergyDTOs = allergies.stream()
                 .map(a -> new AllergyDTO(
@@ -343,15 +329,9 @@ public class MedicalReportService {
                 ))
                 .collect(Collectors.toList());
 
-        // Get selected symptoms from linking table
-        List<ReportSymptom> reportSymptoms = reportSymptomRepository.findByReportReportId(report.getReportId());
-        List<MedicalRecordSymptoms> symptoms = new java.util.ArrayList<>();
-        for (ReportSymptom rs : reportSymptoms) {
-            // Find the corresponding MedicalRecordSymptoms entry
-            List<MedicalRecordSymptoms> mrs = symptomRepository.findByMedicalRecordRecordIdAndSymptomSymptomId(
-                    medicalRecordId, rs.getSymptom().getSymptomId());
-            symptoms.addAll(mrs);
-        }
+        // Symptoms already linked to this medical record.
+        List<MedicalRecordSymptoms> symptoms =
+                symptomRepository.findByMedicalRecordRecordId(medicalRecordId);
 
         List<SymptomDTO> symptomDTOs = symptoms.stream()
                 .map(s -> new SymptomDTO(

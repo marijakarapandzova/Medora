@@ -15,6 +15,7 @@ public class RequestLabTestRequest {
     private Long patientId;
     private Long doctorId;
     private Long testId;
+    private Long technicianId;
     private LocalDate testDate;
     private String notes;
 }

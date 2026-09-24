@@ -19,8 +19,6 @@ import java.util.List;
 public class Patient {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "patient_seq")
-    @SequenceGenerator(name = "patient_seq", sequenceName = "patient_id_seq", allocationSize = 1)
     @Column(name = "patient_id")
     private Long patientId;
 
@@ -54,6 +52,10 @@ public class Patient {
     @JsonIgnore
     private List<MedicalRecord> medicalRecords;
 
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
+
     public Patient() {}
 
     public Patient(Long patientId,
@@ -64,7 +66,8 @@ public class Patient {
                    BloodType bloodType,
                    Gender gender,
                    String phoneNumber,
-                   String embg) {
+                   String embg,
+                   User user) {
 
         this.patientId = patientId;
         this.firstName = firstName;
@@ -75,5 +78,6 @@ public class Patient {
         this.gender = gender;
         this.phoneNumber = phoneNumber;
         this.embg = embg;
+        this.user = user;
     }
 }

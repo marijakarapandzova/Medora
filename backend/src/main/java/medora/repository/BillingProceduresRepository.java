@@ -18,6 +18,8 @@ public interface BillingProceduresRepository extends JpaRepository<BillingProced
     """)
     List<BillingProcedures> findByBillingBillId(@Param("billId") Long billId);
 
+    boolean existsByBillingBillIdAndProcedureProcedureId(Long billId, Long procedureId);
+
     // Calculate total cost of procedures for a billing record
     @Query("""
         SELECT COALESCE(SUM(bp.procedure.cost), 0) FROM BillingProcedures bp
@@ -25,4 +27,3 @@ public interface BillingProceduresRepository extends JpaRepository<BillingProced
     """)
     BigDecimal calculateTotalCostForBilling(@Param("billId") Long billId);
 }
-

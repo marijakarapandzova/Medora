@@ -12,8 +12,6 @@ import lombok.Setter;
 public class MedicalRecord {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "record_seq")
-    @SequenceGenerator(name = "record_seq", sequenceName = "record_id_seq", allocationSize = 1)
     @Column(name = "record_id")
     private Long recordId;
 

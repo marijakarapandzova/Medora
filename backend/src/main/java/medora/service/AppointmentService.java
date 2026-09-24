@@ -120,6 +120,7 @@ public class AppointmentService {
 
         Appointment appointment = new Appointment();
 
+        appointment.setAppointmentId(appointmentRepository.findMaxAppointmentId() + 1);
         appointment.setPatient(patient);
         appointment.setDoctor(doctor);
         appointment.setAppointmentDate(appointmentDate);

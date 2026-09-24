@@ -17,4 +17,6 @@ CreateDoctorRequest {
     private Long levelId;
     private Long specializationId;
     private Long departmentId;
+    private String username;
+    private String password;
 }

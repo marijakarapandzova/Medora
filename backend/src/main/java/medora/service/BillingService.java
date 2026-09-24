@@ -90,13 +90,11 @@ public class BillingService {
                 .orElseThrow(() -> new RuntimeException("Admin not found with ID: " + adminId));
 
         Billing billing = new Billing();
+        billing.setBillId(billingRepository.findMaxBillId() + 1);
         billing.setMedicalRecord(medicalRecord);
-        billing.setAdmin(admin);
         billing.setTotalCost(totalCost);
+        billing.setAdmin(admin);
         billing.setPaymentStatus(PaymentStatus.PENDING);
-
-        logger.info("Generating billing record for medical record ID: {} with total cost: {}",
-                medicalRecordId, totalCost);
         return billingRepository.save(billing);
     }
 
@@ -291,6 +289,7 @@ public class BillingService {
                     .orElseGet(() -> {
                         logger.info("Creating new medical record for patient {}", patientId);
                         MedicalRecord newRecord = new MedicalRecord();
+                        newRecord.setRecordId(medicalRecordRepository.findMaxRecordId() + 1);
                         newRecord.setPatient(patientRepository.findById(patientId)
                                 .orElseThrow(() -> new RuntimeException("Patient not found with ID: " + patientId)));
                         return medicalRecordRepository.save(newRecord);
@@ -353,6 +352,7 @@ public class BillingService {
             } else {
                 // Create new billing record
                 billing = new Billing();
+                billing.setBillId(billingRepository.findMaxBillId() + 1);
                 billing.setMedicalRecord(medicalRecord);
                 billing.setAdmin(admin);
                 billing.setTotalCost(totalCost);
@@ -368,23 +368,21 @@ public class BillingService {
 
             // Link procedures to billing (only if not already linked)
             for (PerformedProcedures procedure : procedures) {
-                try {
+                if (!billingProceduresRepository.existsByBillingBillIdAndProcedureProcedureId(
+                        savedBilling.getBillId(), procedure.getProcedure().getProcedureId())) {
                     BillingProcedures billingProcedure = new BillingProcedures(savedBilling, procedure.getProcedure());
                     billingProceduresRepository.save(billingProcedure);
                     logger.debug("Linked procedure {} to billing {}", procedure.getProcedure().getProcedureId(), savedBilling.getBillId());
-                } catch (Exception e) {
-                    logger.debug("Procedure {} already linked to billing {}", procedure.getProcedure().getProcedureId(), savedBilling.getBillId());
                 }
             }
 
             // Link lab tests to billing (only if not already linked)
             for (PerformedLabTests labTest : labTests) {
-                try {
+                if (!billingLabTestsRepository.existsByBillingBillIdAndLabTestTestId(
+                        savedBilling.getBillId(), labTest.getLabTest().getTestId())) {
                     BillingLabTests billingLabTest = new BillingLabTests(savedBilling, labTest.getLabTest());
                     billingLabTestsRepository.save(billingLabTest);
                     logger.debug("Linked lab test {} to billing {}", labTest.getLabTest().getTestId(), savedBilling.getBillId());
-                } catch (Exception e) {
-                    logger.debug("Lab test {} already linked to billing {}", labTest.getLabTest().getTestId(), savedBilling.getBillId());
                 }
             }
 

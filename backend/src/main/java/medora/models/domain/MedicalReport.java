@@ -16,8 +16,6 @@ import java.util.ArrayList;
 public class MedicalReport {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "medical_report_seq")
-    @SequenceGenerator(name = "medical_report_seq", sequenceName = "medical_report_id_seq", initialValue = 100000, allocationSize = 1)
     @Column(name = "report_id")
     private Long reportId;
 

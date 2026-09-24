@@ -3,10 +3,13 @@ package medora.service;
 
 import medora.models.domain.Patient;
 import medora.models.domain.MedicalRecord;
+import medora.models.domain.User;
 import medora.repository.PatientRepository;
 import medora.repository.MedicalRecordRepository;
+import medora.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,11 +28,17 @@ public class PatientService {
 
     private final PatientRepository patientRepository;
     private final MedicalRecordRepository medicalRecordRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public PatientService(PatientRepository patientRepository,
-                         MedicalRecordRepository medicalRecordRepository) {
+                         MedicalRecordRepository medicalRecordRepository,
+                         UserRepository userRepository,
+                         PasswordEncoder passwordEncoder) {
         this.patientRepository = patientRepository;
         this.medicalRecordRepository = medicalRecordRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -84,7 +93,7 @@ public class PatientService {
      * Create a new patient and automatically create their medical record
      */
     @Transactional
-    public Patient createPatient(Patient patient) {
+    public Patient createPatient(Patient patient, String rawPassword) {
         if (patient == null || patient.getEmbg() == null || patient.getEmbg().isBlank()) {
             throw new IllegalArgumentException("Patient EMBG is required");
         }
@@ -94,6 +103,29 @@ public class PatientService {
         if (patient.getLastName() == null || patient.getLastName().isBlank()) {
             throw new IllegalArgumentException("Patient last name is required");
         }
+        if (rawPassword == null || rawPassword.isBlank()) {
+            throw new IllegalArgumentException("Password is required");
+        }
+
+        // Patients log in using their EMBG as username, matching the
+        // convention already established across the application.
+        if (userRepository.existsByUsername(patient.getEmbg())) {
+            throw new RuntimeException("A user account for this EMBG already exists");
+        }
+
+        // Create the login account first (user_id is DB-generated), since
+        // Patient.user_id is a required foreign key pointing to it.
+        User user = new User();
+        user.setUsername(patient.getEmbg());
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setRole("PATIENT");
+        user.setFirstName(patient.getFirstName());
+        user.setLastName(patient.getLastName());
+        user.setIsActive(true);
+        User savedUser = userRepository.save(user);
+
+        patient.setUser(savedUser);
+        patient.setPatientId(patientRepository.findMaxPatientId() + 1);
 
         logger.info("Creating new patient with EMBG: {}", patient.getEmbg());
         Patient savedPatient = patientRepository.save(patient);
@@ -101,11 +133,13 @@ public class PatientService {
         // Automatically create a medical record for the patient
         try {
             MedicalRecord medicalRecord = new MedicalRecord();
+            medicalRecord.setRecordId(medicalRecordRepository.findMaxRecordId() + 1);
             medicalRecord.setPatient(savedPatient);
             medicalRecordRepository.save(medicalRecord);
             logger.info("Created medical record for patient ID: {}", savedPatient.getPatientId());
         } catch (Exception e) {
-            logger.error("Failed to create medical record for patient: {}", e.getMessage());
+            logger.error("Failed to create medical record for patient {}", savedPatient.getPatientId(), e);
+            throw e;
         }
 
         return savedPatient;
@@ -155,6 +189,7 @@ public class PatientService {
                 boolean hasRecord = patient.getMedicalRecords() != null && !patient.getMedicalRecords().isEmpty();
                 if (!hasRecord) {
                     MedicalRecord medicalRecord = new MedicalRecord();
+                    medicalRecord.setRecordId(medicalRecordRepository.findMaxRecordId() + 1);
                     medicalRecord.setPatient(patient);
                     medicalRecordRepository.save(medicalRecord);
                     createdCount++;

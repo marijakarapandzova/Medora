@@ -29,43 +29,96 @@ Medora is a comprehensive healthcare management platform designed to streamline 
 - **Styling:** TailwindCSS
 - **Build Tool:** npm/Create React App
 
-## 📋 Prerequisites
+##  Prerequisites
 
 Before you start, make sure you have installed:
 
 - **Java JDK 21+** - [Download](https://www.oracle.com/java/technologies/downloads/)
 - **Maven 3.8+** - [Download](https://maven.apache.org/download.cgi)
 - **Node.js 22+** - [Download](https://nodejs.org/)
-- **PostgreSQL 14+** - [Download](https://www.postgresql.org/download/)
+- **PostgreSQL 14+** (if using local database) - [Download](https://www.postgresql.org/download/)
+- **SSH Client** (for remote database access) - Built-in on Windows 10+, Mac, Linux
+
+## Configuration for Remote Database
+
+### Step 1: Setup `.env.properties` File
+
+Create a `.env.properties` file in the project root directory with your remote database credentials:
+
+```properties
+# Remote Database Credentials (provided by your professor or administrator)
+DB_REMOTE_NAME=your_database_name
+DB_REMOTE_USERNAME=your_database_username
+DB_REMOTE_PASSWORD=your_database_password
+
+# JWT Secret for authentication
+JWT_SECRET=your_jwt_secret_key_min_32_characters
+
+# Local database password (for local profile, default is 'postgres')
+DB_PASSWORD=postgres
+```
+
+**Important Security Notes:**
+- ⚠️ This file is in `.gitignore` and must NEVER be committed to Git
+- ⚠️ Keep your credentials secure and do not share them
+- ⚠️ Never upload this file to any public repository
+
+### Step 2: SSH Tunnel Setup (for Remote Database)
+
+Before starting the application, you must establish an SSH tunnel to access the remote database:
+
+```bash
+# Windows (Command Prompt or PowerShell)
+ssh -L 9999:localhost:5432 your_ssh_username@remote_server_address
+
+# Example:
+ssh -L 9999:localhost:5432 t_medora@194.149.135.130
+```
+
+**Important:** Keep this terminal window open while running the application. The tunnel will close if you close the terminal.
+
+**Expected Output:**
+```
+Enter password: [enter your SSH password]
+Access granted. Press Return to begin session.
+Local port 9999 forwarding to localhost:5432
+```
+
+---
 
 ##  Quick Start
 
-### 1. Setup Database
+### Prerequisites Checklist
 
-Create a PostgreSQL database for the application:
+Before starting the application, ensure you have:
 
-```bash
-createdb medora
-```
+-  Created `.env.properties` file with your database credentials
+-  SSH tunnel is running and connected (see Configuration section above)
+-  Terminal window with SSH tunnel remains open
 
-**Note:** The database schema and tables are automatically created by Flyway migrations and Hibernate when the backend starts.
+---
 
-### 2. Start Backend
+### Step 1: Start Backend (Terminal 1)
 
-Navigate to the backend directory and run:
+Navigate to the project root and run:
 
 ```bash
 cd backend
 ./mvnw.cmd spring-boot:run
 ```
 
-The backend will start on `http://localhost:8080`
+**Expected Output:**
+```
+Started MedoraApplication in X seconds
+```
 
-**Wait for the message:** `Started Application in X seconds`
+**Port:** `http://localhost:8081`
 
-### 3. Start Frontend (in a new terminal)
+---
 
-Navigate to the frontend directory and run:
+### Step 2: Start Frontend (Terminal 2)
+
+In a new terminal, navigate to frontend directory and run:
 
 ```bash
 cd frontend
@@ -73,7 +126,32 @@ npm install
 npm start
 ```
 
-The frontend will open automatically on `http://localhost:3000`
+**Expected Output:**
+```
+Compiled successfully!
+You can now view medora-frontend in the browser.
+Local: http://localhost:3001
+```
+
+**Port:** `http://localhost:3001`
+
+---
+
+### Step 3: Access the Application
+
+Open your browser and navigate to: **http://localhost:3001**
+
+You should see the Medora login screen.
+
+---
+
+### ⚠️ Important: Keep These Terminals Open
+
+- **Terminal 0:** SSH Tunnel (must remain open)
+- **Terminal 1:** Backend (Spring Boot)
+- **Terminal 2:** Frontend (React)
+
+Close any of these and the application will stop working.
 
 ##  Default Credentials & User Roles
 
@@ -136,20 +214,37 @@ Password: adminmedora123
 
 ### Backend Configuration
 
-Edit `backend/src/main/resources/application.properties`:
+The backend is configured to use a **remote PostgreSQL database** via SSH tunnel.
+
+**Main Configuration File:** `backend/src/main/resources/application.properties`
 
 ```properties
-# Database
-spring.datasource.url=jdbc:postgresql://localhost:5432/medora
-spring.datasource.username=medora_app
-spring.datasource.password=postgres
+# Application Setup
+spring.application.name=medora
+server.port=8081
+spring.profiles.active=remote
 
-# JWT
-jwt.secret=your-secret-key
+# Load environment variables from .env.properties
+spring.config.import=optional:file:.env.properties
+
+# JWT Authentication
+jwt.secret=${JWT_SECRET}
 jwt.expiration=86400000
 
-# Hibernate
-spring.jpa.hibernate.ddl-auto=update
+# Hibernate/JPA Settings
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.open-in-view=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+```
+
+**Remote Database Configuration:** `backend/src/main/resources/application-remote.properties`
+
+```properties
+# Remote PostgreSQL Database (via SSH tunnel on port 9999)
+spring.datasource.url=jdbc:postgresql://localhost:9999/${DB_REMOTE_NAME}
+spring.datasource.username=${DB_REMOTE_USERNAME}
+spring.datasource.password=${DB_REMOTE_PASSWORD}
+spring.datasource.driver-class-name=org.postgresql.Driver
 ```
 
 

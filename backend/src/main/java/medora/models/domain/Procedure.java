@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -15,14 +16,15 @@ import java.math.BigDecimal;
 public class Procedure {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "procedure_seq")
-    @SequenceGenerator(name = "procedure_seq", sequenceName = "procedure_id_seq", allocationSize = 1)
     @Column(name = "procedure_id")
     private Long procedureId;
 
     @NotBlank
     @Column(name = "procedure_type", nullable = false)
     private String procedureType;
+
+    @Column(name = "procedure_date", nullable = false)
+    private LocalDate procedureDate;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
@@ -31,16 +33,24 @@ public class Procedure {
     @Column(name = "cost", nullable = false)
     private BigDecimal cost;
 
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "doctor_id", nullable = false)
+    private Doctors doctor;
+
     public Procedure() {}
 
     public Procedure(Long procedureId,
                      String procedureType,
+                     LocalDate procedureDate,
                      String description,
-                     BigDecimal cost) {
+                     BigDecimal cost,
+                     Doctors doctor) {
 
         this.procedureId = procedureId;
         this.procedureType = procedureType;
+        this.procedureDate = procedureDate;
         this.description = description;
         this.cost = cost;
+        this.doctor = doctor;
     }
 }

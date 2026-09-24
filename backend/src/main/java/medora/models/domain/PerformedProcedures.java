@@ -13,8 +13,6 @@ import java.time.LocalDate;
 public class PerformedProcedures {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "performed_id_seq")
-    @SequenceGenerator(name = "performed_id_seq", sequenceName = "performed_procedures_performed_id_seq", allocationSize = 1)
     @Column(name = "performed_id")
     private Long performedId;
 

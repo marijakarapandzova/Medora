@@ -56,6 +56,10 @@ public class PatientController {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "EMBG is required"));
             }
+            if (request.getPassword() == null || request.getPassword().isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Password is required"));
+            }
 
             Patient patient = new Patient();
             patient.setFirstName(request.getFirstName());
@@ -67,7 +71,7 @@ public class PatientController {
             patient.setPhoneNumber(request.getPhoneNumber());
             patient.setEmbg(request.getEmbg());
 
-            Patient createdPatient = patientService.createPatient(patient);
+            Patient createdPatient = patientService.createPatient(patient, request.getPassword());
             PatientDTO dto = convertToDTO(createdPatient);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(dto);

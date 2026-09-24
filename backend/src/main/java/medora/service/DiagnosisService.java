@@ -59,6 +59,7 @@ public class DiagnosisService {
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
 
         Diagnosis diagnosis = new Diagnosis();
+        diagnosis.setDiagnosisId(diagnosisRepository.findMaxDiagnosisId() + 1);
         diagnosis.setName(diagnosisName);
         diagnosis.setDescription(description);
         diagnosis.setPatient(patient);

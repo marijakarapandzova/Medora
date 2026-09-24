@@ -14,8 +14,6 @@ import java.time.LocalDateTime;
 public class PerformedLabTests {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "performed_test_seq")
-    @SequenceGenerator(name = "performed_test_seq", sequenceName = "performed_test_id_seq", allocationSize = 1)
     @Column(name = "performed_test_id")
     private Long performedTestId;
 
@@ -31,8 +29,8 @@ public class PerformedLabTests {
     @JoinColumn(name = "doctor_id", nullable = false)
     private Doctors doctor;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "technician_id")
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "technician_id", nullable = false)
     private LabTechnician technician;
 
     @Column(name = "test_date", nullable = false)

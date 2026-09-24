@@ -124,7 +124,7 @@ public class LabController {
 
     @PutMapping("/{testId}")
     public ResponseEntity<?> updateLabTest(@PathVariable Long testId,
-                                          @RequestBody CreateLabTestRequest request) {
+                                           @RequestBody CreateLabTestRequest request) {
         try {
             logger.info("Updating lab test with ID: {}", testId);
             LabTests updatedTest = labService.updateLabTest(
@@ -163,10 +163,16 @@ public class LabController {
 
             logger.info("Requesting lab test {} for patient {}", request.getTestId(), request.getPatientId());
 
+            if (request.getTechnicianId() == null || request.getTechnicianId() <= 0) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Valid lab technician ID is required"));
+            }
+
             PerformedLabTests performedTest = labService.requestLabTestForPatient(
                     request.getPatientId(),
                     request.getDoctorId(),
                     request.getTestId(),
+                    request.getTechnicianId(),
                     request.getTestDate(),
                     request.getNotes()
             );

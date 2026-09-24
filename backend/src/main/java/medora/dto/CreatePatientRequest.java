@@ -22,4 +22,5 @@ public class CreatePatientRequest {
     private Gender gender;
     private String phoneNumber;
     private String embg;
+    private String password;
 }
